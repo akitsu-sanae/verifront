@@ -1,43 +1,54 @@
- #![feature(box_syntax)]
+#![feature(box_syntax)]
 #![feature(type_alias_enum_variants)]
 
 mod logic;
-mod ident;
 mod theory;
 
 #[cfg(test)]
 mod tests {
     #[test]
     fn theory() {
-        use crate::logic::*;
-        use crate::ident;
+        use crate::logic::{self, DefaultPropos, DefaultFOL};
+        type Propos = DefaultPropos;
+        use crate::theory;
         fn debug_print_check<T: std::fmt::Debug>(x: T, s: &str) {
             assert_eq!(format!("{:?}", x), s.to_string());
         }
         debug_print_check(
-            Propos::Atom(ident::make("A")),
-            r#"Atom("A")"#);
-        debug_print_check(
-            Propos::make_neg(
-                box Propos::make_and(
-                    box Propos::make_atom("A"),
-                    box Propos::make_or(
-                        box Propos::make_atom("B"),
-                        box Propos::make_atom("C")))),
-            r#"UnaryOp(Neg, BinaryOp(And, Atom("A"), BinaryOp(Or, Atom("B"), Atom("C"))))"#);
+            Propos::Var(logic::make_ident("A")),
+            r#"Var("A")"#);
 
-        use crate::theory::boolean::{Function, Predicate, Boolean};
-        type BFOL = FOL<Boolean>;
-        debug_print_check( // forall a. a = true
-            BFOL::Quantified(
-                Quantifier::Forall,
-                vec![ident::make("a")],
-                box BFOL::Apply(
-                    Predicate::Eq,
+        use crate::theory::core::FunctionSymbol::*;
+        debug_print_check( // A and (B and C)
+            Propos::Apply(
+                Not,
+                vec![
+                Propos::Apply(
+                    And,
                     vec![
-                        Term::Var (ident::make("a")),
-                        Term::Apply (Function::True, vec![])
+                    Propos::Var(logic::make_ident("A")),
+                    Propos::Apply(
+                        And,
+                        vec![
+                        Propos::Var(logic::make_ident("B")),
+                        Propos::Var(logic::make_ident("C")),
+                        ]),
+                    ])
+                ]),
+            r#"Apply(Not, [Apply(And, [Var("A"), Apply(And, [Var("B"), Var("C")])])])"#);
+
+        type FOL = DefaultFOL;
+        use crate::logic::Quantifier;
+        debug_print_check( // forall a. a = true
+            FOL::Binding(
+                Quantifier::Forall,
+                vec![logic::make_ident("a")],
+                box FOL::Apply(
+                    Equal,
+                    vec![
+                    FOL::Var(logic::make_ident("a")),
+                    FOL::Apply(True, vec![])
                     ])),
-            r#"Quantified(Forall, ["a"], Apply(Eq, [Var("a"), Apply(True, [])]))"#);
+            r#"Binding(Forall, ["a"], Apply(Equal, [Var("a"), Apply(True, [])]))"#);
     }
 }
