@@ -1,6 +1,8 @@
 
 use super::{Theory, FunAttr};
-use crate::logic::{Sort, make_ident};
+use crate::logic::Sort;
+use crate::ident;
+
 
 #[derive(Debug)]
 pub struct Core {}
@@ -35,8 +37,8 @@ impl Theory for Core {
                 Sort::Symbol(SortSymbol::Bool),
             ],
             Equal | Distinct | IfThenElse => vec![
-                Sort::Var (make_ident("A")),
-                Sort::Var (make_ident("A")),
+                Sort::Var (ident::make("A")),
+                Sort::Var (ident::make("A")),
             ],
         }
     }
@@ -44,7 +46,7 @@ impl Theory for Core {
     fn ret_sort_of(func: &Self::FunctionSymbol) -> Sort<Self::SortSymbol> {
         use FunctionSymbol::*;
         match func {
-            IfThenElse => Sort::Var (make_ident("A")),
+            IfThenElse => Sort::Var (ident::make("A")),
             _ => Sort::Symbol(SortSymbol::Bool),
         }
     }

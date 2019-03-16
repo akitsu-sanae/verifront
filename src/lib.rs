@@ -1,21 +1,22 @@
 #![feature(box_syntax)]
 #![feature(type_alias_enum_variants)]
 
-mod logic;
-mod theory;
+pub mod logic;
+pub mod theory;
+pub mod ident;
 
 #[cfg(test)]
 mod tests {
     #[test]
     fn theory() {
-        use crate::logic::{self, DefaultPropos, DefaultFOL};
+        use crate::logic::{DefaultPropos, DefaultFOL};
+        use crate::ident;
         type Propos = DefaultPropos;
-        use crate::theory;
         fn debug_print_check<T: std::fmt::Debug>(x: T, s: &str) {
             assert_eq!(format!("{:?}", x), s.to_string());
         }
         debug_print_check(
-            Propos::Var(logic::make_ident("A")),
+            Propos::Var(ident::make("A")),
             r#"Var("A")"#);
 
         use crate::theory::core::FunctionSymbol::*;
@@ -26,12 +27,12 @@ mod tests {
                 Propos::Apply(
                     And,
                     vec![
-                    Propos::Var(logic::make_ident("A")),
+                    Propos::Var(ident::make("A")),
                     Propos::Apply(
                         And,
                         vec![
-                        Propos::Var(logic::make_ident("B")),
-                        Propos::Var(logic::make_ident("C")),
+                        Propos::Var(ident::make("B")),
+                        Propos::Var(ident::make("C")),
                         ]),
                     ])
                 ]),
@@ -42,11 +43,11 @@ mod tests {
         debug_print_check( // forall a. a = true
             FOL::Binding(
                 Quantifier::Forall,
-                vec![logic::make_ident("a")],
+                vec![ident::make("a")],
                 box FOL::Apply(
                     Equal,
                     vec![
-                    FOL::Var(logic::make_ident("a")),
+                    FOL::Var(ident::make("a")),
                     FOL::Apply(True, vec![])
                     ])),
             r#"Binding(Forall, ["a"], Apply(Equal, [Var("a"), Apply(True, [])]))"#);

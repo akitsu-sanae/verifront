@@ -1,15 +1,10 @@
 use super::theory::Theory;
+use super::ident::Ident;
 
 /// Quantifier Symbols
 #[derive(Debug)]
 pub enum Quantifier {
     Forall, Exists
-}
-
-pub type Ident = String;
-
-pub fn make_ident(s: &str) -> Ident {
-    s.to_string()
 }
 
 #[derive(Debug)]
@@ -27,8 +22,8 @@ pub enum Expr<T: Theory, Binder, Extension> {
     Extension (Extension),
 }
 
-pub type Propos<T: Theory> = Expr<T, (), ()>;
+pub type Propos<T> = Expr<T, (), ()>;
 pub type DefaultPropos = Propos<super::theory::core::Core>;
-pub type FOL<T: Theory> = Expr<T, Quantifier, ()>;
+pub type FOL<T> = Expr<T, Quantifier, ()>;
 pub type DefaultFOL = FOL<super::theory::core::Core>;
 
