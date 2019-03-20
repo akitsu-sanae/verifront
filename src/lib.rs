@@ -1,10 +1,14 @@
 #![feature(box_syntax)]
+#![feature(box_patterns)]
 #![feature(type_alias_enum_variants)]
+
+extern crate sexp;
 
 pub mod logic;
 pub mod theory;
 pub mod program;
 pub mod ident;
+pub mod parse;
 
 #[cfg(test)]
 mod tests {

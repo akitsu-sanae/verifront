@@ -5,3 +5,5 @@ authors = ["akitsu-sanae <akitsu.sanae@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+sexp = "1.1.4"
+
