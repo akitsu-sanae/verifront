@@ -1,21 +1,21 @@
-pub mod core;
-use super::logic::{Sort};
+pub mod boolean;
+use crate::logic::*;
 
-pub enum FunAttr {
-    LeftAssoc,
-    RightAssoc,
-    Chainable,
-    Pairwise,
+pub trait IsSortSymbol : From<boolean::SortSymbol> {}
+
+pub trait IsFunctionSymbol<S: IsSortSymbol> : From<boolean::FunctionSymbol> {
+    fn arg_sorts(&self) -> Vec<Sort<S>>;
+    fn ret_sort(&self) -> Sort<S>;
 }
 
-pub trait Theory {
-    type SortSymbol;
-    type FunctionSymbol;
-    type Info: std::fmt::Debug + Default;
+pub trait IsConst<S: IsSortSymbol> : From<boolean::Const> {
+    fn sort(&self) -> Sort<S>;
+}
 
-    fn args_sorts_of(func: &Self::FunctionSymbol) -> Vec<Sort<Self::SortSymbol> >;
-    fn ret_sort_of(func: &Self::FunctionSymbol) -> Sort<Self::SortSymbol>;
-    fn attr_of(func: &Self::FunctionSymbol) -> Option<FunAttr>;
-    fn info() -> Self::Info;
+
+pub trait Theory : From<boolean::Boolean> {
+    type SortSymbol : IsSortSymbol;
+    type FunctionSymbol : IsFunctionSymbol<Self::SortSymbol>;
+    type Const : IsConst<Self::SortSymbol>;
 }
 
