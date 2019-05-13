@@ -33,6 +33,15 @@ impl<T: Theory, B: IsBinder> Expr<T, B> {
         } else {
             Expr::Const(T::Const::from(True))
         }
+
+        /*
+        match &exprs[..] {
+            [] => Expr::Const(T::Const::from(True)),
+            [ref hd, ref tl ..] =>
+                tl.into_iter().fold(*hd, |acc, expr| {
+                    Expr::Apply(T::FunctionSymbol::from(And), vec!(acc, *expr))
+                })
+        } */
     }
 }
 

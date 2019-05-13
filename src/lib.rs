@@ -11,7 +11,6 @@ pub mod theory;
 pub mod program;
 pub mod ident;
 pub mod format;
-
 mod util;
 
 #[cfg(test)]

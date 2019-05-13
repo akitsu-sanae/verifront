@@ -45,4 +45,3 @@ impl<T, B> Format<Expr<T, B>, Vec<Sexp>> for Smtlib2<Expr<T,B>>
         parse::toplevels(toplevels)
     }
 }
-
