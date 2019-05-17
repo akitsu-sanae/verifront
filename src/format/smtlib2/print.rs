@@ -1,6 +1,6 @@
 use std::error::Error;
 use std::fmt;
-use sexp::Sexp;
+use sexp::{Sexp, Atom};
 
 use crate::ident::Ident;
 use crate::logic::*;
@@ -81,8 +81,11 @@ fn sexp_of_expr<T, B>(expr: &Expr<T, B>) -> Result<Sexp, PrintError>
 pub fn toplevels<T, B>(expr: &Expr<T, B>) -> Result<Vec<Sexp>, PrintError>
     where T: Smtlib2Theory, B: Smtlib2Binder
 {
-    Ok(vec!(
-            Sexp::Atom(sexp::Atom::S("assert".to_string())),
-            sexp_of_expr(expr)?))
+    let mut result = vec!();
+    result.push(Sexp::List(vec!(
+                Sexp::Atom(Atom::S("assert".to_string())),
+                sexp_of_expr(expr)?)));
+    result.push(Sexp::List(vec!(Sexp::Atom(Atom::S("check-sat".to_string())))));
+    Ok(result)
 }
 
