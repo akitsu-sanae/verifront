@@ -2,19 +2,19 @@ use crate::theory::{Theory, boolean};
 use crate::binder::{IsBinder, EmptyBinder, Quantifier};
 use crate::ident::Ident;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Sort<S> { // S : Sort Symbols
     Symbol (S),
     Var (Ident),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Function<F> { // F : Function Symbol
     Symbol(F),
     Var (Ident),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expr<T: Theory, Binder> {
     Binding(Binder, Vec<(Ident, Sort<T::SortSymbol>)>, Box<Expr<T, Binder>>),
     Apply(Function<T::FunctionSymbol>, Vec<Expr<T, Binder>>),

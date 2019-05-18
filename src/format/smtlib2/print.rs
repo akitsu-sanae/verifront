@@ -68,10 +68,10 @@ fn sexp_of_expr<T, B>(expr: &Expr<T, B>) -> Result<Sexp, PrintError>
         }
         Apply(fun, args)=> {
             let args: Result<Vec<_>, _> = args.into_iter().map(|arg| sexp_of_expr(arg)).collect();
-            let args = args?;
-            Ok(Sexp::List(vec!(
-                    sexp_of_function::<T>(fun)?,
-                    Sexp::List(args))))
+            let mut args = args?;
+            let mut exprs = vec!(sexp_of_function::<T>(fun)?);
+            exprs.append(&mut args);
+            Ok(Sexp::List(exprs))
         },
         Const(c) => T::sexp_of_const(c),
         Var(ident) => Ok(Sexp::Atom(sexp::Atom::S(ident.clone()))),

@@ -1,7 +1,9 @@
 use std::str::{self, FromStr};
 use sexp::{Sexp, Atom};
-use crate::logic::{*, Propos};
-use crate::theory::boolean;
+use crate::ident;
+use crate::logic::{*, Propos, FOLWithTheory};
+use crate::theory::{boolean, integer};
+use crate::binder::*;
 use crate::format::{Format, smtlib2::{Smtlib2, Smtlib2Theory, Smtlib2Binder}};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -25,6 +27,12 @@ fn check_with_z3<T: Smtlib2Theory, B: Smtlib2Binder>(expr: &Expr<T, B>, sexpr: &
         &Smtlib2::<Expr<T, B>>::print(expr).unwrap(),
         sexpr);
 
+    /*
+    assert_eq!(
+        expr,
+        &Smtlib2::<Expr<T, B>>::parse(sexpr).unwrap());
+        */
+
     use std::io::Write;
 
     let mut file = tempfile::NamedTempFile::new().unwrap();
@@ -46,13 +54,37 @@ fn check_with_z3<T: Smtlib2Theory, B: Smtlib2Binder>(expr: &Expr<T, B>, sexpr: &
 
 #[test]
 fn print() {
-    use boolean::Const;
     check_with_z3( // true
-        &Propos::Const(Const::True),
+        &Propos::Const(boolean::Const::True),
         &vec!(
             Sexp::List(vec!(
                 Sexp::Atom(Atom::S("assert".to_string())),
                 Sexp::Atom(Atom::S("true".to_string())))),
+            Sexp::List(vec!(Sexp::Atom(Atom::S("check-sat".to_string()))))),
+        Z3Status::Sat);
+
+    type FOL = FOLWithTheory<integer::Integer>;
+    check_with_z3( // exists x:Int. x < 100
+        &FOL::Binding(
+            Quantifier::Exists,
+            vec!((ident::make("x"), Sort::Symbol(integer::SortSymbol::Int))),
+            box FOL::Apply(
+                Function::Symbol(integer::FunctionSymbol::Lt),
+                vec!(
+                    FOL::Var(ident::make("x")),
+                    FOL::Const(integer::Const::Number(100))))),
+        &vec!(
+            Sexp::List(vec!(
+                    Sexp::Atom(Atom::S("assert".to_string())),
+                    Sexp::List(vec!(
+                            Sexp::Atom(Atom::S("exists".to_string())),
+                            Sexp::List(vec!(Sexp::List(vec!(
+                                Sexp::Atom(Atom::S("x".to_string())),
+                                Sexp::Atom(Atom::S("Int".to_string())))))),
+                            Sexp::List(vec!(
+                                Sexp::Atom(Atom::S("<".to_string())),
+                                Sexp::Atom(Atom::S("x".to_string())),
+                                Sexp::Atom(Atom::I(100)))))))),
             Sexp::List(vec!(Sexp::Atom(Atom::S("check-sat".to_string()))))),
         Z3Status::Sat);
 }
