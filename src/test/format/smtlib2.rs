@@ -25,11 +25,9 @@ fn check_with_z3<T: Smtlib2Theory, B: Smtlib2Binder>(expr: &Expr<T, B>, sexpr: &
         &Smtlib2::<Expr<T, B>>::print(expr).unwrap(),
         sexpr);
 
-    /*
     assert_eq!(
         expr,
         &Smtlib2::<Expr<T, B>>::parse(sexpr).unwrap());
-        */
 
     use std::io::Write;
 

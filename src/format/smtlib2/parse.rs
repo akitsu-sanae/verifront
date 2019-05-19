@@ -1,8 +1,9 @@
 use std::error::Error;
 use std::fmt;
-use sexp::Sexp;
+use sexp::{Sexp, Atom};
 
-use crate::logic::{expr::*, theory::*, binder::*};
+use crate::ident::{self, Ident};
+use crate::logic::{expr::*, theory::*};
 use super::{Smtlib2Theory, Smtlib2Binder};
 
 #[derive(Debug)]
@@ -28,8 +29,103 @@ impl ParseError {
     }
 }
 
-fn expr_of_sexp<T: Theory, B: IsBinder>(_sexp: &Sexp) -> Expr<T, B> {
-    unimplemented!()
+fn params_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(sexp: &Sexp)
+    -> Result<Vec<(Ident, Sort<T::SortSymbol>)>, ParseError>
+{
+    if let Sexp::List(params) = sexp {
+        let params: Result<Vec<_>, _> = params.iter().map(|param| {
+            if let Sexp::List(param) = param {
+                match param.as_slice() {
+                    [Sexp::Atom(Atom::S(ident)), sort] => {
+                        let sort = sort_of_sexp::<T, B>(sort)?;
+                        Ok((ident.clone(), sort))
+                    },
+                    param => Err(ParseError::new(format!("invalid sexp as param : {:?}", param)))
+                }
+            } else {
+                Err(ParseError::new(format!("invalid sexp as param : {}", param)))
+            }
+        }).collect();
+        params
+    } else {
+        Err(ParseError::new(format!("invalid sexp as params : {}", sexp)))
+    }
+}
+
+fn sort_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(sexp: &Sexp)
+    -> Result<Sort<T::SortSymbol>, ParseError>
+{
+    T::sort_symbol_of_sexp(sexp)
+        .map(|fs| Sort::Symbol(fs))
+        .or_else(|_| {
+            if let Sexp::Atom(Atom::S(var)) = sexp {
+                Ok(Sort::Var(ident::make(&var)))
+            } else {
+                Err(ParseError::new(format!("invalid sexp as sort : {}", sexp)))
+            }
+        })
+}
+
+fn function_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(sexp: &Sexp)
+    -> Result<Function<T::SortSymbol, T::FunctionSymbol>, ParseError>
+{
+    T::function_symbol_of_sexp(sexp)
+        .map(|fs| Function::Symbol(fs))
+        .or_else(|_| {
+            if let Sexp::Atom(Atom::S(var)) = sexp {
+                Ok(Function::Var(ident::make(&var)))
+            } else {
+                Err(ParseError::new(format!("invalid sexp as function : {}", sexp)))
+            }
+        })
+}
+
+fn const_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(sexp: &Sexp)
+    -> Result<Const<T::SortSymbol, T::ConstSymbol>, ParseError>
+{
+    T::const_symbol_of_sexp(sexp)
+        .map(|fs| Const::Symbol(fs))
+        .or_else(|_| {
+            if let Sexp::Atom(Atom::S(var)) = sexp {
+                Ok(Const::Var(ident::make(&var)))
+            } else {
+                Err(ParseError::new(format!("invalid sexp as const : {}", sexp)))
+            }
+        })
+}
+
+fn expr_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(sexp: &Sexp) -> Result<Expr<T, B>, ParseError> {
+    match sexp {
+        Sexp::List(sexps) => {
+            match sexps.as_slice() {
+                [head, tail ..] => {
+                    if let Ok(binder) = B::binder_of_sexp(head) {
+                        match tail {
+                            [params, expr] => {
+                                let params = params_of_sexp::<T, B>(params)?;
+                                let expr = expr_of_sexp(expr)?;
+                                Ok(Expr::Binding(binder, params, box expr))
+                            },
+                            _ => Err(ParseError::new(format!("invalid sexp as binding : {}", sexp)))
+                        }
+                    } else if let Ok(fun) = function_of_sexp::<T, B>(head) {
+                        let args: Result<_, _> = tail.iter().map(|arg| expr_of_sexp(arg)).collect();
+                        let args = args?;
+                        Ok(Expr::Apply(fun, args))
+                    } else {
+                        Ok(Expr::Const(const_of_sexp::<T, B>(sexp)?))
+                    }
+                },
+                _ => Err(ParseError::new(format!("invalid sexp as expr : {}", Sexp::List(sexps.to_vec()))))
+            }
+        },
+        Sexp::Atom(atom) => {
+            Ok(Expr::Const(const_of_sexp::<T, B>(&Sexp::Atom(atom.clone())).or_else(|_| match atom {
+                Atom::S(name) => Ok(Const::Var(ident::make(name))),
+                _ => Err(ParseError::new(format!("invalid sexp as expr : {}", Sexp::Atom(atom.clone()))))
+            })?))
+        },
+    }
 }
 
 pub fn toplevels<T, B>(toplevels: &Vec<Sexp>) -> Result<Expr<T, B>, ParseError>
@@ -44,7 +140,7 @@ pub fn toplevels<T, B>(toplevels: &Vec<Sexp>) -> Result<Expr<T, B>, ParseError>
                     "declare-fun" => unimplemented!(),
                     "assert" => {
                         if let Some(second) = toplevel.get(1) {
-                            exprs.push(expr_of_sexp(second));
+                            exprs.push(expr_of_sexp(second)?);
                         } else {
                             return Err(ParseError::new(format!("invalid toplevel {:?}", toplevel)))
                         }

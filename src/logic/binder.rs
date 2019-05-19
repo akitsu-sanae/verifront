@@ -39,7 +39,7 @@ impl Smtlib2Binder for Quantifier {
         if let Sexp::Atom(Atom::S(str)) = expr {
             match str.as_str() {
                 "forall" => Ok(Quantifier::Forall),
-                "exist" => Ok(Quantifier::Exists),
+                "exists" => Ok(Quantifier::Exists),
                 str => Err(ParseError::new(format!("unknown binder : {}", str)))
             }
         } else {
