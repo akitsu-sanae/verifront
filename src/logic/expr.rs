@@ -12,16 +12,22 @@ pub enum Expr<T: Theory, B: IsBinder> {
 }
 
 impl<T: Theory, B: IsBinder> Expr<T, B> {
-    pub fn and_of(mut exprs: Vec<Self>) -> Self {
+    fn acc(mut exprs: Vec<Self>, op: boolean::FunctionSymbol) -> Self {
         use boolean::ConstSymbol::True;
-        use boolean::FunctionSymbol::And;
         if let Some(hd) = exprs.pop() {
             exprs.into_iter().fold(hd, |acc, expr| {
-                Expr::Apply(Function::Symbol(T::FunctionSymbol::from(And)), vec!(acc, expr))
+                Expr::Apply(Function::Symbol(T::FunctionSymbol::from(op)), vec!(acc, expr))
             })
         } else {
             Expr::Const(Const::Symbol(T::ConstSymbol::from(True)))
         }
+    }
+
+    pub fn and_of(exprs: Vec<Self>) -> Self {
+        Self::acc(exprs, boolean::FunctionSymbol::And)
+    }
+    pub fn or_of(exprs: Vec<Self>) -> Self {
+        Self::acc(exprs, boolean::FunctionSymbol::Or)
     }
 }
 

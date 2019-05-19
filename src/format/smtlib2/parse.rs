@@ -111,7 +111,14 @@ fn expr_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(sexp: &Sexp) -> Result<Expr<
                     } else if let Ok(fun) = function_of_sexp::<T, B>(head) {
                         let args: Result<_, _> = tail.iter().map(|arg| expr_of_sexp(arg)).collect();
                         let args = args?;
-                        Ok(Expr::Apply(fun, args))
+                        use boolean::FunctionSymbol::{And, Or};
+                        if fun == Function::Symbol(T::FunctionSymbol::from(And)) {
+                            Ok(Expr::and_of(args))
+                        } else if fun == Function::Symbol(T::FunctionSymbol::from(Or)) {
+                            Ok(Expr::or_of(args))
+                        } else {
+                            Ok(Expr::Apply(fun, args))
+                        }
                     } else {
                         Ok(Expr::Const(const_of_sexp::<T, B>(sexp)?))
                     }
