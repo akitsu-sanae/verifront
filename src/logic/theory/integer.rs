@@ -1,8 +1,6 @@
 use crate::util;
-use crate::logic::*;
-use crate::theory::*;
+use crate::logic::theory::*;
 use crate::format::smtlib2::Smtlib2Theory;
-use super::boolean;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SortSymbol {
@@ -20,7 +18,7 @@ impl From<Sort<boolean::SortSymbol>> for Sort<SortSymbol> {
     }
 }
 
-impl ::std::convert::From<boolean::SortSymbol> for SortSymbol {
+impl From<boolean::SortSymbol> for SortSymbol {
     fn from(_bs: boolean::SortSymbol) -> SortSymbol {
         SortSymbol::Bool
     }
@@ -35,7 +33,7 @@ pub enum FunctionSymbol {
     Lt, Gt, Leq, Geq
 }
 
-impl ::std::convert::From<boolean::FunctionSymbol> for FunctionSymbol {
+impl From<boolean::FunctionSymbol> for FunctionSymbol {
     fn from(bf: boolean::FunctionSymbol) -> FunctionSymbol {
         FunctionSymbol::Boolean(bf)
     }
@@ -71,20 +69,20 @@ impl IsFunctionSymbol<SortSymbol> for FunctionSymbol {
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Const {
-    Boolean(boolean::Const),
+pub enum ConstSymbol {
+    Boolean(boolean::ConstSymbol),
     Number(i64)
 }
 
-impl ::std::convert::From<boolean::Const> for Const {
-    fn from(bc: boolean::Const) -> Const {
-        Const::Boolean(bc)
+impl From<boolean::ConstSymbol> for ConstSymbol {
+    fn from(bc: boolean::ConstSymbol) -> ConstSymbol {
+        ConstSymbol::Boolean(bc)
     }
 }
 
-impl IsConst<SortSymbol> for Const {
+impl IsConstSymbol<SortSymbol> for ConstSymbol {
     fn sort(&self) -> Sort<SortSymbol> {
-        use Const::*;
+        use ConstSymbol::*;
         use SortSymbol::*;
         match self {
             Boolean(_) => Sort::Symbol(Bool),
@@ -105,7 +103,7 @@ impl ::std::convert::From<boolean::Boolean> for Integer {
 impl Theory for Integer {
     type SortSymbol = SortSymbol;
     type FunctionSymbol = FunctionSymbol;
-    type Const = Const;
+    type ConstSymbol = ConstSymbol;
 }
 
 use sexp::{Sexp, Atom};
@@ -113,8 +111,8 @@ use crate::format::smtlib2::{PrintError, ParseError};
 impl Smtlib2Theory for Integer {
     fn sexp_of_sort_symbol(ss: &SortSymbol) -> Result<Sexp, PrintError> {
         Ok(match ss {
-            SortSymbol::Bool => util::make_atom("Bool"),
-            SortSymbol::Int => util::make_atom("Int"),
+            SortSymbol::Bool => util::make_str_atom("Bool"),
+            SortSymbol::Int => util::make_str_atom("Int"),
         })
     }
 
@@ -122,22 +120,22 @@ impl Smtlib2Theory for Integer {
         use FunctionSymbol::*;
         match fs {
             Boolean(bfs) => boolean::Boolean::sexp_of_function_symbol(bfs),
-            Add => Ok(util::make_atom("+")),
-            Sub => Ok(util::make_atom("-")),
-            Mult => Ok(util::make_atom("*")),
-            Div => Ok(util::make_atom("/")),
-            Lt => Ok(util::make_atom("<")),
-            Gt => Ok(util::make_atom(">")),
-            Leq => Ok(util::make_atom("<=")),
-            Geq => Ok(util::make_atom(">=")),
+            Add => Ok(util::make_str_atom("+")),
+            Sub => Ok(util::make_str_atom("-")),
+            Mult => Ok(util::make_str_atom("*")),
+            Div => Ok(util::make_str_atom("/")),
+            Lt => Ok(util::make_str_atom("<")),
+            Gt => Ok(util::make_str_atom(">")),
+            Leq => Ok(util::make_str_atom("<=")),
+            Geq => Ok(util::make_str_atom(">=")),
         }
     }
 
-    fn sexp_of_const(c: &Const) -> Result<Sexp, PrintError> {
-        use Const::*;
+    fn sexp_of_const_symbol(c: &ConstSymbol) -> Result<Sexp, PrintError> {
+        use ConstSymbol::*;
         match c {
-            Boolean(bc) => boolean::Boolean::sexp_of_const(bc),
-            Number(n) => Ok(Sexp::Atom(Atom::I(*n))),
+            Boolean(bc) => boolean::Boolean::sexp_of_const_symbol(bc),
+            Number(n) => Ok(util::make_int_atom(*n)),
         }
     }
 
@@ -173,12 +171,12 @@ impl Smtlib2Theory for Integer {
         }
     }
 
-    fn const_of_sexp(expr: &Sexp) -> Result<Const, ParseError> {
-        use Const::*;
+    fn const_symbol_of_sexp(expr: &Sexp) -> Result<ConstSymbol, ParseError> {
+        use ConstSymbol::*;
         if let Sexp::Atom(Atom::I(n)) = expr {
             Ok(Number(*n))
         } else {
-            match boolean::Boolean::const_of_sexp(expr) {
+            match boolean::Boolean::const_symbol_of_sexp(expr) {
                 Ok(bc) => Ok(Boolean(bc)),
                 Err(err) => Err(err)
             }

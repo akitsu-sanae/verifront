@@ -2,10 +2,7 @@ use std::error::Error;
 use std::fmt;
 use sexp::Sexp;
 
-use crate::logic::*;
-use crate::theory::*;
-use crate::binder::*;
-
+use crate::logic::{expr::*, theory::*, binder::*};
 use super::{Smtlib2Theory, Smtlib2Binder};
 
 #[derive(Debug)]

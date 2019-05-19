@@ -31,8 +31,8 @@ impl Smtlib2Binder for Quantifier {
     fn sexp_of_binder(&self) -> Result<Sexp, PrintError> {
         use Quantifier::*;
         match self {
-            Forall => Ok(util::make_atom("forall")),
-            Exists => Ok(util::make_atom("exists")),
+            Forall => Ok(util::make_str_atom("forall")),
+            Exists => Ok(util::make_str_atom("exists")),
         }
     }
     fn binder_of_sexp(expr: &Sexp) -> Result<Self, ParseError> {

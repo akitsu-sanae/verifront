@@ -2,8 +2,9 @@ use std::error::Error;
 use std::fmt;
 use sexp::{Sexp, Atom};
 
+use crate::util;
 use crate::ident::Ident;
-use crate::logic::*;
+use crate::logic::{expr::*, theory::*};
 
 use super::{Smtlib2Theory, Smtlib2Binder};
 
@@ -37,10 +38,11 @@ fn sexp_of_sort<T: Smtlib2Theory>(sort: &Sort<T::SortSymbol>) -> Result<Sexp, Pr
     }
 }
 
-fn sexp_of_function<T: Smtlib2Theory>(fun: &Function<T::FunctionSymbol>) -> Result<Sexp, PrintError> {
+fn sexp_of_function<T: Smtlib2Theory>(fun: &Function<T::SortSymbol, T::FunctionSymbol>) -> Result<Sexp, PrintError> {
     match fun {
         Function::Var(ident) => Ok(Sexp::Atom(sexp::Atom::S(ident.clone()))),
         Function::Symbol(sym) => T::sexp_of_function_symbol(sym),
+        Function::_Phantom(_) => unreachable!(),
     }
 }
 
@@ -73,8 +75,14 @@ fn sexp_of_expr<T, B>(expr: &Expr<T, B>) -> Result<Sexp, PrintError>
             exprs.append(&mut args);
             Ok(Sexp::List(exprs))
         },
-        Const(c) => T::sexp_of_const(c),
-        Var(ident) => Ok(Sexp::Atom(sexp::Atom::S(ident.clone()))),
+        Const(c) => {
+            use crate::logic::theory::Const::*;
+            Ok(match c {
+                Symbol(cs) => T::sexp_of_const_symbol(cs)?,
+                Var(ident) => util::make_str_atom(ident),
+                _Phantom(_) => unreachable!(),
+            })
+        }
     }
 }
 

@@ -1,7 +1,5 @@
 use sexp::Sexp;
-use crate::logic::*;
-use crate::theory::*;
-use crate::binder::*;
+use crate::logic::{expr::*, theory::*, binder::*};
 use super::Format;
 
 mod print;
@@ -13,11 +11,11 @@ pub use parse::ParseError;
 pub trait Smtlib2Theory : Theory {
     fn sexp_of_sort_symbol(ss: &Self::SortSymbol) -> Result<Sexp, PrintError>;
     fn sexp_of_function_symbol(fs: &Self::FunctionSymbol) -> Result<Sexp, PrintError>;
-    fn sexp_of_const(c: &Self::Const) -> Result<Sexp, PrintError>;
+    fn sexp_of_const_symbol(c: &Self::ConstSymbol) -> Result<Sexp, PrintError>;
 
     fn sort_symbol_of_sexp(expr: &Sexp) -> Result<Self::SortSymbol, ParseError>;
     fn function_symbol_of_sexp(expr: &Sexp) -> Result<Self::FunctionSymbol, ParseError>;
-    fn const_of_sexp(expr: &Sexp) -> Result<Self::Const, ParseError>;
+    fn const_symbol_of_sexp(expr: &Sexp) -> Result<Self::ConstSymbol, ParseError>;
 }
 
 pub trait Smtlib2Binder : IsBinder + Sized {

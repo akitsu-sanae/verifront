@@ -1,19 +1,17 @@
 use crate::ident;
-use crate::logic::{*, Propos, FOL};
-use crate::theory::Theory;
-use crate::binder::{IsBinder, Quantifier};
+use crate::logic::{expr::*, theory::*, binder::*};
 
 use super::debug_print_check;
 
 fn make_var<T: Theory, B: IsBinder>(name: &str) -> Expr<T, B> {
-    Expr::Var(ident::make(name))
+    Expr::Const(Const::Var(ident::make(name)))
 }
 
 #[test]
 fn theory() {
-    use crate::theory::boolean::{SortSymbol::*, FunctionSymbol::*, Const::*};
+    use crate::logic::theory::boolean::{SortSymbol::*, FunctionSymbol::*, ConstSymbol::*};
 
-    debug_print_check(make_var("A") as Propos, r#"Var("A")"#);
+    debug_print_check(make_var("A") as Propos, r#"Const(Var("A"))"#);
 
     debug_print_check( // not (A and (B and C))
         Propos::Apply(
@@ -29,7 +27,7 @@ fn theory() {
                                 make_var("B"),
                                 make_var("C")
                             )))))),
-            r#"Apply(Symbol(Not), [Apply(Symbol(And), [Var("A"), Apply(Symbol(And), [Var("B"), Var("C")])])])"#);
+            r#"Apply(Symbol(Not), [Apply(Symbol(And), [Const(Var("A")), Apply(Symbol(And), [Const(Var("B")), Const(Var("C"))])])])"#);
 
     debug_print_check( // forall a: Bool. a = true
         FOL::Binding(
@@ -39,8 +37,8 @@ fn theory() {
                 Function::Symbol(Equal),
                 vec!(
                     make_var("a"),
-                    FOL::Const(True)
+                    FOL::Const(Const::Symbol(True)),
                 ))),
-                r#"Binding(Forall, [("a", Symbol(Bool))], Apply(Symbol(Equal), [Var("a"), Const(True)]))"#);
+                r#"Binding(Forall, [("a", Symbol(Bool))], Apply(Symbol(Equal), [Const(Var("a")), Const(Symbol(True))]))"#);
 }
 

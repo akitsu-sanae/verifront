@@ -1,9 +1,7 @@
 use std::str::{self, FromStr};
 use sexp::{Sexp, Atom};
 use crate::ident;
-use crate::logic::{*, Propos, FOLWithTheory};
-use crate::theory::{boolean, integer};
-use crate::binder::*;
+use crate::logic::{expr::*, theory::*, binder::*};
 use crate::format::{Format, smtlib2::{Smtlib2, Smtlib2Theory, Smtlib2Binder}};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -55,7 +53,7 @@ fn check_with_z3<T: Smtlib2Theory, B: Smtlib2Binder>(expr: &Expr<T, B>, sexpr: &
 #[test]
 fn print() {
     check_with_z3( // true
-        &Propos::Const(boolean::Const::True),
+        &Propos::Const(Const::Symbol(boolean::ConstSymbol::True)),
         &vec!(
             Sexp::List(vec!(
                 Sexp::Atom(Atom::S("assert".to_string())),
@@ -71,8 +69,8 @@ fn print() {
             box FOL::Apply(
                 Function::Symbol(integer::FunctionSymbol::Lt),
                 vec!(
-                    FOL::Var(ident::make("x")),
-                    FOL::Const(integer::Const::Number(100))))),
+                    FOL::Const(Const::Var(ident::make("x"))),
+                    FOL::Const(Const::Symbol(integer::ConstSymbol::Number(100)))))),
         &vec!(
             Sexp::List(vec!(
                     Sexp::Atom(Atom::S("assert".to_string())),
