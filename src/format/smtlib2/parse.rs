@@ -3,8 +3,8 @@ use std::fmt;
 use sexp::{Sexp, Atom};
 
 use crate::ident::{self, Ident};
-use crate::logic::{expr::*, theory::*};
-use super::{Smtlib2Theory, Smtlib2Binder};
+use crate::logic::theory::*;
+use super::*;
 
 #[derive(Debug)]
 pub struct ParseError {
@@ -135,10 +135,10 @@ fn expr_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(sexp: &Sexp) -> Result<Expr<
     }
 }
 
-pub fn toplevels<T, B>(toplevels: &Vec<Sexp>) -> Result<Expr<T, B>, ParseError>
+pub fn toplevels<T, B>(toplevels: &Vec<Sexp>) -> Result<Smtlib2<T, B>, ParseError>
     where T: Smtlib2Theory, B: Smtlib2Binder
 {
-    let mut exprs = vec!();
+    let mut commands = vec!();
     for toplevel in toplevels {
         if let Sexp::List(toplevel) = toplevel {
             if let Some(Sexp::Atom(sexp::Atom::S(first))) = toplevel.get(0) {
@@ -147,7 +147,7 @@ pub fn toplevels<T, B>(toplevels: &Vec<Sexp>) -> Result<Expr<T, B>, ParseError>
                     "declare-fun" => unimplemented!(),
                     "assert" => {
                         if let Some(second) = toplevel.get(1) {
-                            exprs.push(expr_of_sexp(second)?);
+                            commands.push(Command::Assert(expr_of_sexp(second)?));
                         } else {
                             return Err(ParseError::new(format!("invalid toplevel {:?}", toplevel)))
                         }
@@ -163,6 +163,8 @@ pub fn toplevels<T, B>(toplevels: &Vec<Sexp>) -> Result<Expr<T, B>, ParseError>
             return Err(ParseError::new(format!("invalid toplevel {:?}", toplevel)))
         }
     }
-    Ok(Expr::and_of(exprs))
+    Ok(Smtlib2 {
+        commands: commands
+    })
 }
 

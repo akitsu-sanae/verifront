@@ -6,7 +6,7 @@ use std::marker::PhantomData;
 
 use crate::ident::Ident;
 
-pub trait IsSortSymbol : From<boolean::SortSymbol> + PartialEq + Eq + Debug {}
+pub trait IsSortSymbol : From<boolean::SortSymbol> + PartialEq + Eq + Debug + Clone {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Sort<S: IsSortSymbol> {
@@ -14,7 +14,7 @@ pub enum Sort<S: IsSortSymbol> {
     Var (Ident),
 }
 
-pub trait IsFunctionSymbol<S: IsSortSymbol> : From<boolean::FunctionSymbol> + PartialEq + Eq + Debug {
+pub trait IsFunctionSymbol<S: IsSortSymbol> : From<boolean::FunctionSymbol> + PartialEq + Eq + Debug + Clone {
     fn arg_sorts(&self) -> Vec<Sort<S>>;
     fn ret_sort(&self) -> Sort<S>;
 }
@@ -27,7 +27,7 @@ pub enum Function<S: IsSortSymbol, F: IsFunctionSymbol<S>> {
 
 }
 
-pub trait IsConstSymbol<S: IsSortSymbol> : From<boolean::ConstSymbol> + PartialEq + Eq + Debug {
+pub trait IsConstSymbol<S: IsSortSymbol> : From<boolean::ConstSymbol> + PartialEq + Eq + Debug + Clone {
     fn sort(&self) -> Sort<S>;
 }
 

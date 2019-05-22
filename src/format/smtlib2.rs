@@ -1,4 +1,5 @@
 use sexp::Sexp;
+use crate::ident::Ident;
 use crate::logic::{expr::*, theory::*, binder::*};
 use super::Format;
 
@@ -21,25 +22,49 @@ pub trait Smtlib2Theory : Theory {
 pub trait Smtlib2Binder : IsBinder + Sized {
     fn sexp_of_binder(&self) -> Result<Sexp, PrintError>;
     fn binder_of_sexp(expr: &Sexp) -> Result<Self, ParseError>;
-
 }
 
-use std::marker::PhantomData;
-pub struct Smtlib2<E> {
-    phantom_data: PhantomData<fn () -> E>,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FunDec<T: Smtlib2Theory> {
+    name: Ident,
+    params: Vec<Sort<T::SortSymbol>>,
+    ret: Sort<T::SortSymbol>,
 }
 
-impl<T, B> Format<Expr<T, B>, Vec<Sexp>> for Smtlib2<Expr<T,B>>
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FunDef<T: Smtlib2Theory, B: Smtlib2Binder> {
+    name: Ident,
+    params: Vec<(Ident, Sort<T::SortSymbol>)>,
+    ret: Sort<T::SortSymbol>,
+    body: Expr<T, B>,
+}
+
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Command<T: Smtlib2Theory, B: Smtlib2Binder> {
+    DeclareFun(FunDec<T>),
+    DefineFun(FunDef<T, B>),
+    // DefineFunRec(FunDef),
+    // DefineFunsRec(Vec<FunDef>),
+    Assert(Expr<T, B>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Smtlib2<T: Smtlib2Theory, B: Smtlib2Binder> {
+    pub commands: Vec<Command<T, B>>,
+}
+
+impl<T, B> Format<Vec<Sexp>> for Smtlib2<T,B>
     where T: Smtlib2Theory, B: Smtlib2Binder
 {
     type PrintError = PrintError;
     type ParseError = ParseError;
 
-    fn print(expr: &Expr<T, B>) -> Result<Vec<Sexp>, PrintError> {
+    fn print(expr: &Smtlib2<T, B>) -> Result<Vec<Sexp>, PrintError> {
         print::toplevels(expr)
     }
 
-    fn parse(toplevels: &Vec<Sexp>) -> Result<Expr<T, B>, ParseError> {
+    fn parse(toplevels: &Vec<Sexp>) -> Result<Smtlib2<T, B>, ParseError> {
         parse::toplevels(toplevels)
     }
 }

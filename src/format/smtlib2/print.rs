@@ -1,12 +1,11 @@
 use std::error::Error;
 use std::fmt;
-use sexp::{Sexp, Atom};
+use sexp::Sexp;
 
 use crate::util;
 use crate::ident::Ident;
-use crate::logic::{expr::*, theory::*};
 
-use super::{Smtlib2Theory, Smtlib2Binder};
+use super::*;
 
 #[derive(Debug)]
 pub struct PrintError {
@@ -86,14 +85,48 @@ fn sexp_of_expr<T, B>(expr: &Expr<T, B>) -> Result<Sexp, PrintError>
     }
 }
 
-pub fn toplevels<T, B>(expr: &Expr<T, B>) -> Result<Vec<Sexp>, PrintError>
+fn sexp_of_fundec<T: Smtlib2Theory>(dec_fun: &FunDec<T>) -> Result<Sexp, PrintError> {
+    Ok(Sexp::List(vec!(
+            util::make_str_atom("declare-fun"),
+            util::make_str_atom(dec_fun.name.as_str()),
+            Sexp::List({
+                let params: Result<Vec<_>, _> = dec_fun.params.iter()
+                    .map(|param| sexp_of_sort::<T>(param)).collect();
+                params?
+            }),
+            sexp_of_sort::<T>(&dec_fun.ret)?)))
+}
+
+fn sexp_of_fundef<T: Smtlib2Theory, B: Smtlib2Binder>(def_fun: &FunDef<T, B>) -> Result<Sexp, PrintError> {
+    Ok(Sexp::List(vec!(
+            util::make_str_atom("define-fun"),
+            util::make_str_atom(def_fun.name.as_str()),
+            sexp_of_params::<T>(&def_fun.params)?,
+            sexp_of_sort::<T>(&def_fun.ret)?,
+            sexp_of_expr(&def_fun.body)?)))
+}
+
+fn sexp_of_assert<T: Smtlib2Theory, B:Smtlib2Binder>(expr: &Expr<T, B>) -> Result<Sexp, PrintError> {
+    Ok(Sexp::List(vec!(
+            util::make_str_atom("assert"),
+            sexp_of_expr(expr)?)))
+}
+
+pub fn toplevels<T, B>(smtlib2: &Smtlib2<T, B>) -> Result<Vec<Sexp>, PrintError>
     where T: Smtlib2Theory, B: Smtlib2Binder
 {
-    let mut result = vec!();
-    result.push(Sexp::List(vec!(
-                Sexp::Atom(Atom::S("assert".to_string())),
-                sexp_of_expr(expr)?)));
-    result.push(Sexp::List(vec!(Sexp::Atom(Atom::S("check-sat".to_string())))));
+    use Command::*;
+    let result: Result<Vec<_>, _> = smtlib2.commands.iter()
+        .map(|command| match command {
+            DeclareFun(dec_fun) => sexp_of_fundec(&dec_fun),
+            DefineFun(def_fun) => sexp_of_fundef(&def_fun),
+            // DefineFunRec(def_fun) => sexp_of_fundef_rec(def_fun),
+            // DefineFunsRec(def_funs) => sexp_of_funsdef_rec(def_funs),
+            Assert(expr) => sexp_of_assert(&expr),
+        })
+        .collect();
+    let mut result = result?;
+    result.push(Sexp::List(vec!(util::make_str_atom("check-sat"))));
     Ok(result)
 }
 

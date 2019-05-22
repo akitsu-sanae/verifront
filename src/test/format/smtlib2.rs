@@ -2,7 +2,7 @@ use std::str::{self, FromStr};
 use sexp::{Sexp, Atom};
 use crate::ident;
 use crate::logic::{expr::*, theory::*, binder::*};
-use crate::format::{Format, smtlib2::{Smtlib2, Smtlib2Theory, Smtlib2Binder}};
+use crate::format::{Format, smtlib2::*};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Z3Status {
@@ -20,14 +20,18 @@ impl FromStr for Z3Status {
     }
 }
 
-fn check_with_z3<T: Smtlib2Theory, B: Smtlib2Binder>(expr: &Expr<T, B>, sexpr: &Vec<Sexp>, status: Z3Status) {
+fn check_with_z3<T: Smtlib2Theory, B: Smtlib2Binder>(expr: Expr<T, B>, sexpr: Vec<Sexp>, status: Z3Status) {
+    let smtlib2 = Smtlib2 {
+        commands: vec!(Command::Assert(expr)),
+    };
+
     assert_eq!(
-        &Smtlib2::<Expr<T, B>>::print(expr).unwrap(),
+        Smtlib2::<T, B>::print(&smtlib2).unwrap(),
         sexpr);
 
     assert_eq!(
-        expr,
-        &Smtlib2::<Expr<T, B>>::parse(sexpr).unwrap());
+        smtlib2,
+        Smtlib2::<T, B>::parse(&sexpr).unwrap());
 
     use std::io::Write;
 
@@ -36,9 +40,7 @@ fn check_with_z3<T: Smtlib2Theory, B: Smtlib2Binder>(expr: &Expr<T, B>, sexpr: &
         writeln!(file, "{}\n", sexpr).unwrap();
     }
 
-    use std::process::Command;
-
-    let result = Command::new("z3")
+    let result = ::std::process::Command::new("z3")
         .arg("-smt2")
         .arg(file.path())
         .output()
@@ -51,8 +53,8 @@ fn check_with_z3<T: Smtlib2Theory, B: Smtlib2Binder>(expr: &Expr<T, B>, sexpr: &
 #[test]
 fn print() {
     check_with_z3( // true
-        &Propos::Const(Const::Symbol(boolean::ConstSymbol::True)),
-        &vec!(
+        Propos::Const(Const::Symbol(boolean::ConstSymbol::True)),
+        vec!(
             Sexp::List(vec!(
                 Sexp::Atom(Atom::S("assert".to_string())),
                 Sexp::Atom(Atom::S("true".to_string())))),
@@ -61,7 +63,7 @@ fn print() {
 
     type FOL = FOLWithTheory<integer::Integer>;
     check_with_z3( // exists x:Int. x < 100
-        &FOL::Binding(
+        FOL::Binding(
             Quantifier::Exists,
             vec!((ident::make("x"), Sort::Symbol(integer::SortSymbol::Int))),
             box FOL::Apply(
@@ -69,7 +71,7 @@ fn print() {
                 vec!(
                     FOL::Const(Const::Var(ident::make("x"))),
                     FOL::Const(Const::Symbol(integer::ConstSymbol::Number(100)))))),
-        &vec!(
+        vec!(
             Sexp::List(vec!(
                     Sexp::Atom(Atom::S("assert".to_string())),
                     Sexp::List(vec!(
