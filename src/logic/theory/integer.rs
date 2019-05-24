@@ -154,7 +154,7 @@ impl Smtlib2Theory for Integer {
 
     fn function_symbol_of_sexp(expr: &Sexp) -> Result<FunctionSymbol, ParseError> {
         use FunctionSymbol::*;
-        if let Sexp::Atom(Atom::S(str)) = expr {
+        let int_fun = if let Sexp::Atom(Atom::S(str)) = expr {
             match str.as_str() {
                 "+" => Ok(Add),
                 "-" => Ok(Sub),
@@ -168,7 +168,11 @@ impl Smtlib2Theory for Integer {
             }
         } else {
             Err(ParseError::new(format!("invalid sexp as function symbol : {}", expr)))
-        }
+        };
+        int_fun.or_else(|_| match boolean::Boolean::function_symbol_of_sexp(expr) {
+            Ok(bf) => Ok(FunctionSymbol::from(bf)),
+            Err(err) => Err(err),
+        })
     }
 
     fn const_symbol_of_sexp(expr: &Sexp) -> Result<ConstSymbol, ParseError> {

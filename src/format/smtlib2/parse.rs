@@ -140,28 +140,37 @@ pub fn toplevels<T, B>(toplevels: &Vec<Sexp>) -> Result<Smtlib2<T, B>, ParseErro
 {
     let mut commands = vec!();
     for toplevel in toplevels {
-        if let Sexp::List(toplevel) = toplevel {
-            if let Some(Sexp::Atom(sexp::Atom::S(first))) = toplevel.get(0) {
-                match first.as_str() {
-                    "set-logic" | "set-info" | "check-sat" | "exit" => (),
-                    "declare-fun" => unimplemented!(),
-                    "assert" => {
-                        if let Some(second) = toplevel.get(1) {
-                            commands.push(Command::Assert(expr_of_sexp(second)?));
-                        } else {
-                            return Err(ParseError::new(format!("invalid toplevel {:?}", toplevel)))
-                        }
-                    },
-                    _ => {
-                        return Err(ParseError::new(format!("invalid toplevel {:?}", toplevel)))
-                    }
-                }
-            } else {
-                return Err(ParseError::new(format!("invalid toplevel {:?}", toplevel)))
+        let cmd = if let Sexp::List(toplevel) = toplevel {
+            match toplevel.as_slice() {
+                [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(name)), Sexp::List(params), sort] if head.as_str() == "declare-fun"  => {
+                    let params: Result<Vec<_>, _> = params.iter().map(sort_of_sexp::<T, B>).collect();
+                    let params = params?;
+                    let sort = sort_of_sexp::<T, B>(sort)?;
+                    Command::DeclareFun(FunDec {
+                        name: name.to_string(),
+                        params: params,
+                        ret: sort,
+                    })
+                },
+                [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(name)), params, sort, expr] if head.as_str() == "define-fun" => {
+                    let params = params_of_sexp::<T, B>(params)?;
+                    let sort = sort_of_sexp::<T, B>(sort)?;
+                    let expr = expr_of_sexp(expr)?;
+                    Command::DefineFun(FunDef {
+                        name: name.to_string(),
+                        params: params,
+                        ret: sort,
+                        body: expr,
+                    })
+                },
+                [Sexp::Atom(Atom::S(head)), expr] if head.as_str() == "assert" => Command::Assert(expr_of_sexp(expr)?),
+                [Sexp::Atom(Atom::S(head))] if head.as_str() == "check-sat" => Command::CheckSat,
+                toplevel => return Err(ParseError::new(format!("invalid toplevel {:?}", toplevel))),
             }
         } else {
             return Err(ParseError::new(format!("invalid toplevel {:?}", toplevel)))
-        }
+        };
+        commands.push(cmd);
     }
     Ok(Smtlib2 {
         commands: commands

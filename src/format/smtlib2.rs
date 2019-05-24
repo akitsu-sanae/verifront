@@ -33,10 +33,10 @@ pub struct FunDec<T: Smtlib2Theory> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunDef<T: Smtlib2Theory, B: Smtlib2Binder> {
-    name: Ident,
-    params: Vec<(Ident, Sort<T::SortSymbol>)>,
-    ret: Sort<T::SortSymbol>,
-    body: Expr<T, B>,
+    pub name: Ident,
+    pub params: Vec<(Ident, Sort<T::SortSymbol>)>,
+    pub ret: Sort<T::SortSymbol>,
+    pub body: Expr<T, B>,
 }
 
 
@@ -47,11 +47,20 @@ pub enum Command<T: Smtlib2Theory, B: Smtlib2Binder> {
     // DefineFunRec(FunDef),
     // DefineFunsRec(Vec<FunDef>),
     Assert(Expr<T, B>),
+    CheckSat,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Smtlib2<T: Smtlib2Theory, B: Smtlib2Binder> {
     pub commands: Vec<Command<T, B>>,
+}
+
+impl<T: Smtlib2Theory, B: Smtlib2Binder> Smtlib2<T, B> {
+    pub fn new(cmds: Vec<Command<T, B>>) -> Self {
+        Self {
+            commands: cmds,
+        }
+    }
 }
 
 impl<T, B> Format<Vec<Sexp>> for Smtlib2<T,B>

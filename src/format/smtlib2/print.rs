@@ -112,6 +112,10 @@ fn sexp_of_assert<T: Smtlib2Theory, B:Smtlib2Binder>(expr: &Expr<T, B>) -> Resul
             sexp_of_expr(expr)?)))
 }
 
+fn sexp_of_check_sat() -> Result<Sexp, PrintError> {
+    Ok(Sexp::List(vec!(util::make_str_atom("check-sat"))))
+}
+
 pub fn toplevels<T, B>(smtlib2: &Smtlib2<T, B>) -> Result<Vec<Sexp>, PrintError>
     where T: Smtlib2Theory, B: Smtlib2Binder
 {
@@ -123,10 +127,9 @@ pub fn toplevels<T, B>(smtlib2: &Smtlib2<T, B>) -> Result<Vec<Sexp>, PrintError>
             // DefineFunRec(def_fun) => sexp_of_fundef_rec(def_fun),
             // DefineFunsRec(def_funs) => sexp_of_funsdef_rec(def_funs),
             Assert(expr) => sexp_of_assert(&expr),
+            CheckSat => sexp_of_check_sat(),
         })
         .collect();
-    let mut result = result?;
-    result.push(Sexp::List(vec!(util::make_str_atom("check-sat"))));
-    Ok(result)
+    result
 }
 
