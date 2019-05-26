@@ -38,6 +38,8 @@ pub enum Const<S: IsSortSymbol, C: IsConstSymbol<S>> {
     _Phantom (PhantomData<Fn () -> S>),
 }
 
+pub type SortedSymbol<SS> = (Ident, Sort<SS>);
+
 pub trait Theory : Debug + PartialEq + Eq {
     type SortSymbol : IsSortSymbol;
     type FunctionSymbol : IsFunctionSymbol<Self::SortSymbol>;

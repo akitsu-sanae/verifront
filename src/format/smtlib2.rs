@@ -25,6 +25,12 @@ pub trait Smtlib2Binder : IsBinder + Sized {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DatatypeDec<SS: IsSortSymbol> {
+    param: Vec<Ident>,
+    ctors: Vec<(Ident, Vec<SortedSymbol<SS>>)>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunDec<T: Smtlib2Theory> {
     name: Ident,
     params: Vec<Sort<T::SortSymbol>>,
@@ -34,20 +40,77 @@ pub struct FunDec<T: Smtlib2Theory> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunDef<T: Smtlib2Theory, B: Smtlib2Binder> {
     pub name: Ident,
-    pub params: Vec<(Ident, Sort<T::SortSymbol>)>,
+    pub params: Vec<SortedSymbol<T::SortSymbol>>,
     pub ret: Sort<T::SortSymbol>,
     pub body: Expr<T, B>,
 }
 
+/*
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Option {
+    DiagnosticOutputChannel(String),
+    GlobalDeclarations(bool),
+    InteractiveMode(bool),
+    PrintSuccess(bool),
+    ProduceAssertions(bool),
+    ProduceAssignments(bool),
+    ProduceModels(bool),
+    ProduceProofs(bool),
+    ProduceUnsatAssumptions(bool),
+    ProduceUnsatCores(bool),
+    RandomSeed(i64),
+    RegularOutputChannel(String),
+    ReproducibleResourceLimit(i64),
+    Verbosity(i64),
+    Attribute(Attribute),
+} */
+
+/*
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum InfoFlag {
+    AllStatistics,
+    AssertionStackLevels,
+    Authors,
+    ErrorBehavior,
+    Name,
+    ReasonUnknown,
+    Version,
+    Keyword(Keyword),
+} */
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Command<T: Smtlib2Theory, B: Smtlib2Binder> {
-    DeclareFun(FunDec<T>),
-    DefineFun(FunDef<T, B>),
-    // DefineFunRec(FunDef),
-    // DefineFunsRec(Vec<FunDef>),
+pub enum Command<T: Smtlib2Theory, B: Smtlib2Binder> { // version 2.6
     Assert(Expr<T, B>),
     CheckSat,
+    CheckSatAssuming,
+    DeclareConst(SortedSymbol<T::SortSymbol>),
+    DeclareDatatype(Ident, DatatypeDec<T::SortSymbol>),
+    DeclareDatatypes(Vec<(Ident, i64, DatatypeDec<T::SortSymbol>)>),
+    DeclareFun(FunDec<T>),
+    DeclareSort(Ident, i64),
+    DefineFun(FunDef<T, B>),
+    DefineFunRec(FunDef<T, B>),
+    DefineFunsRec(Vec<FunDef<T, B>>),
+    DefineSort(Ident, Vec<Ident>, Sort<T::SortSymbol>),
+    Echo(String),
+    Exit,
+    /*
+    GetAssertions,
+    GetAssignment,
+    GetInfo(InfoFlag),
+    GetModel,
+    GetOption(Keyword),
+    GetProof,
+    GetUnsatAssumptions,
+    GetUnsatCore,
+    GetValue(Vec<Expr<T, B>>),
+    Pop(i64),
+    Push(i64),
+    Reset,
+    ResetAssertions,
+    SetInfo(Attribute),
+    SetLogic(Ident),
+    SetOption(Option), */
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
