@@ -99,6 +99,7 @@ fn sexp_of_fundec<T: Smtlib2Theory>(dec_fun: &FunDec<T>) -> Result<Sexp, PrintEr
 
 fn sexp_of_declare_sort(ident: &String, n: i64) -> Result<Sexp, PrintError> {
     Ok(Sexp::List(vec!(
+            util::make_str_atom("declare-sort"),
             util::make_str_atom(ident.as_str()),
             util::make_int_atom(n))))
 }
@@ -153,7 +154,7 @@ fn sexp_of_assert<T: Smtlib2Theory, B:Smtlib2Binder>(expr: &Expr<T, B>) -> Resul
 
 fn sexp_of_declare_const<T: Smtlib2Theory>((ref ident, ref sort): &SortedSymbol<T::SortSymbol>) -> Result<Sexp, PrintError> {
     Ok(Sexp::List(vec!(
-            util::make_str_atom("declare-sort"),
+            util::make_str_atom("declare-const"),
             util::make_str_atom(ident.as_str()),
             sexp_of_sort::<T>(sort)?)))
 }
