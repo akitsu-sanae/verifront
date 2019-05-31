@@ -26,15 +26,15 @@ pub trait Smtlib2Binder : IsBinder + Sized {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DatatypeDec<SS: IsSortSymbol> {
-    param: Vec<Ident>,
-    ctors: Vec<(Ident, Vec<SortedSymbol<SS>>)>,
+    pub param: Vec<Ident>,
+    pub ctors: Vec<(Ident, Vec<SortedSymbol<SS>>)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunDec<T: Smtlib2Theory> {
-    name: Ident,
-    params: Vec<Sort<T::SortSymbol>>,
-    ret: Sort<T::SortSymbol>,
+    pub name: Ident,
+    pub params: Vec<Sort<T::SortSymbol>>,
+    pub ret: Sort<T::SortSymbol>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -82,7 +82,7 @@ pub enum InfoFlag {
 pub enum Command<T: Smtlib2Theory, B: Smtlib2Binder> { // version 2.6
     Assert(Expr<T, B>),
     CheckSat,
-    CheckSatAssuming,
+    CheckSatAssuming(Vec<Ident>, Vec<Ident>), // positives and negativs
     DeclareConst(SortedSymbol<T::SortSymbol>),
     DeclareDatatype(Ident, DatatypeDec<T::SortSymbol>),
     DeclareDatatypes(Vec<(Ident, i64, DatatypeDec<T::SortSymbol>)>),

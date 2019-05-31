@@ -194,16 +194,41 @@ fn sexp_of_declare_datatype<T: Smtlib2Theory>(ident: &String, datatype_dec: &Dat
             sexp_of_datatype_dec::<T>(datatype_dec)?)))
 }
 
-fn sexp_of_declare_datatypes<SS: IsSortSymbol>(_hoge: &Vec<(Ident, i64, DatatypeDec<SS>)>) -> Result<Sexp, PrintError> {
-    unimplemented!()
+fn sexp_of_declare_datatypes<T: Smtlib2Theory>(datatypes: &Vec<(Ident, i64, DatatypeDec<T::SortSymbol>)>) -> Result<Sexp, PrintError> {
+
+    let mut sorts_sexp = vec!();
+    let mut datatypes_sexp = vec!();
+
+    for (sort_ident, sort_num, datatype) in datatypes.iter() {
+        sorts_sexp.push(Sexp::List(vec!(
+                    util::make_str_atom(sort_ident.as_str()),
+                    util::make_int_atom(*sort_num))));
+        datatypes_sexp.push(sexp_of_datatype_dec::<T>(datatype)?);
+    }
+
+    Ok(Sexp::List(vec!(
+                util::make_str_atom("declare-datatypes"),
+                Sexp::List(sorts_sexp),
+                Sexp::List(datatypes_sexp))))
 }
 
 fn sexp_of_check_sat() -> Result<Sexp, PrintError> {
     Ok(Sexp::List(vec!(util::make_str_atom("check-sat"))))
 }
 
-fn sexp_of_check_sat_assuming() -> Result<Sexp, PrintError> {
-    Ok(Sexp::List(vec!(util::make_str_atom("check-sat-assuming"))))
+fn sexp_of_check_sat_assuming(poss: &Vec<Ident>, negs: &Vec<Ident>) -> Result<Sexp, PrintError> {
+    let mut propos = vec!();
+    for pos in poss.iter() {
+        propos.push(util::make_str_atom(pos.as_str()));
+    }
+    for neg in negs.iter() {
+        propos.push(Sexp::List(vec!(
+                    util::make_str_atom("not"),
+                    util::make_str_atom(neg.as_str()))));
+    }
+    Ok(Sexp::List(vec!(
+                util::make_str_atom("check-sat-assuming"),
+                Sexp::List(propos))))
 }
 
 fn sexp_of_echo(msg: &String) -> Result<Sexp, PrintError> {
@@ -224,10 +249,10 @@ pub fn toplevels<T, B>(smtlib2: &Smtlib2<T, B>) -> Result<Vec<Sexp>, PrintError>
         .map(|command| match command {
             Assert(expr) => sexp_of_assert(&expr),
             CheckSat => sexp_of_check_sat(),
-            CheckSatAssuming => sexp_of_check_sat_assuming(),
+            CheckSatAssuming(pos, neg) => sexp_of_check_sat_assuming(pos, neg),
             DeclareConst(sorted_symbol) => sexp_of_declare_const::<T>(sorted_symbol),
             DeclareDatatype(ident, datatype) => sexp_of_declare_datatype::<T>(ident, datatype),
-            DeclareDatatypes(datatypes) => sexp_of_declare_datatypes(datatypes),
+            DeclareDatatypes(datatypes) => sexp_of_declare_datatypes::<T>(datatypes),
             DeclareFun(dec_fun) => sexp_of_fundec(&dec_fun),
             DeclareSort(ident, n) => sexp_of_declare_sort(ident, *n),
             DefineFun(def_fun) => sexp_of_fundef(&def_fun),

@@ -1,35 +1,22 @@
-use std::str::{self, FromStr};
 use sexp::Sexp;
 use crate::ident;
 use crate::util;
 use crate::logic::{expr::*, theory::*, binder::*};
 use crate::format::{Format, smtlib2::*};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Z3Status {
-    Sat, Unsat,
-}
+type FOL = FOLWithTheory<integer::Integer>;
 
-impl FromStr for Z3Status {
-    type Err = String;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.trim() {
-            "sat" | "Sat" | "SAT" => Ok(Z3Status::Sat),
-            "unsat" | "Unsat" | "UNSAT" => Ok(Z3Status::Unsat),
-            s => Err(format!("unknown z3 status: {}", s))
-        }
-    }
-}
-
-fn check_with_z3<T: Smtlib2Theory, B: Smtlib2Binder>(smtlib2: Smtlib2<T, B>, sexpr: Vec<Sexp>, status: Z3Status) {
+fn check_with_z3<T: Smtlib2Theory, B: Smtlib2Binder>(smtlib2: Smtlib2<T, B>, _sexpr: Vec<Sexp>, expected: &str) {
+    /*
     assert_eq!(
         Smtlib2::<T, B>::print(&smtlib2).unwrap(),
         sexpr);
 
     assert_eq!(
         smtlib2,
-        Smtlib2::<T, B>::parse(&sexpr).unwrap());
+        Smtlib2::<T, B>::parse(&sexpr).unwrap()); */
 
+    let sexpr = Smtlib2::<T, B>::print(&smtlib2).unwrap();
     use std::io::Write;
 
     let mut file = tempfile::NamedTempFile::new().unwrap();
@@ -42,14 +29,13 @@ fn check_with_z3<T: Smtlib2Theory, B: Smtlib2Binder>(smtlib2: Smtlib2<T, B>, sex
         .arg(file.path())
         .output()
         .expect("failed to execute z3");
-    let output = Z3Status::from_str(str::from_utf8(&result.stdout).expect("unrecognazed output")).unwrap();
-    assert_eq!(output, status);
+    assert_eq!(expected, ::std::str::from_utf8(&result.stdout).expect("unrecognazed output"));
 }
 
 
 #[test]
-fn print_parse() {
-    check_with_z3( // true
+fn primitive() {
+    check_with_z3( // assert(true)
         Smtlib2::new(vec!(
                 Command::Assert(Propos::Const(Const::Symbol(boolean::ConstSymbol::True))),
                 Command::CheckSat)),
@@ -58,17 +44,29 @@ fn print_parse() {
                 util::make_str_atom("assert"),
                 util::make_str_atom("true"))),
             Sexp::List(vec!(util::make_str_atom("check-sat")))),
-        Z3Status::Sat);
+        "sat\n");
+}
 
-    type FOL = FOLWithTheory<integer::Integer>;
-    fn int_literal(n: i64) -> FOL {
-        FOL::Const(Const::Symbol(integer::ConstSymbol::Number(n)))
-    }
-    check_with_z3( // exists x:Int. x < 100
+fn int_literal(n: i64) -> FOL {
+    FOL::Const(Const::Symbol(integer::ConstSymbol::Number(n)))
+}
+
+fn int_sort() -> Sort<integer::SortSymbol> {
+    Sort::Symbol(integer::SortSymbol::Int)
+}
+
+fn bool_sort() -> Sort<integer::SortSymbol> {
+    Sort::Symbol(integer::SortSymbol::Bool)
+}
+
+
+#[test]
+fn fol() { // assert(exists x:Int. x < 100)
+    check_with_z3(
         Smtlib2::new(vec!(
                 Command::Assert(FOL::Binding(
                     Quantifier::Exists,
-                    vec!((ident::make("x"), Sort::Symbol(integer::SortSymbol::Int))),
+                    vec!((ident::make("x"), int_sort())),
                     box FOL::Apply(
                         Function::Symbol(integer::FunctionSymbol::Lt),
                         vec!(
@@ -88,14 +86,17 @@ fn print_parse() {
                                     util::make_str_atom("x"),
                                     util::make_int_atom(100))))))),
             Sexp::List(vec!(util::make_str_atom("check-sat")))),
-        Z3Status::Sat);
+        "sat\n");
+}
 
-    check_with_z3( // define-fun plus4 (x: Int): Int = x + 4; assert (plus4(2) = 6)
+#[test]
+fn define_fun() { // define-fun plus4 (x: Int): Int = x + 4; assert (plus4(2) = 6)
+    check_with_z3(
         Smtlib2::new(vec!(
                 Command::DefineFun(FunDef {
                     name: ident::make("plus4"),
-                    params: vec!((ident::make("x"), Sort::Symbol(integer::SortSymbol::Int))),
-                    ret: Sort::Symbol(integer::SortSymbol::Int),
+                    params: vec!((ident::make("x"), int_sort())),
+                    ret: int_sort(),
                     body: FOL::Apply(
                         Function::Symbol(integer::FunctionSymbol::Add),
                         vec!(
@@ -131,6 +132,96 @@ fn print_parse() {
                                     util::make_int_atom(2))),
                             util::make_int_atom(6))))),
             Sexp::List(vec!(util::make_str_atom("check-sat")))),
-        Z3Status::Sat);
+        "sat\n");
+}
+
+#[test]
+fn commands() {
+    check_with_z3(
+        Smtlib2::new(vec!(
+            Command::DeclareConst((ident::make("A"), int_sort())),
+            Command::DeclareConst((ident::make("B"), bool_sort())),
+            Command::Assert(FOL::Const(Const::Symbol(integer::ConstSymbol::Boolean(boolean::ConstSymbol::True)))),
+            Command::CheckSat,
+            Command::CheckSatAssuming(vec!(ident::make("B")), vec!(ident::make("B"))),
+            // Command::DeclareDatatype(ident::make("foo"), DatatypeDec {
+            //    // type foo<'a> = bar of {hoge: int} | baz of {fuga: 'a}
+            //    param: vec!(ident::make("'a")),
+            //    ctors: vec!(
+            //        (ident::make("bar"), vec!((ident::make("hoge"), int_sort()))),
+            //        (ident::make("baz"), vec!((ident::make("fuga"), Sort::Var(ident::make("'a")))))),
+           //  }),
+            Command::DeclareDatatypes(vec!()), // TODO
+            Command::DeclareFun(FunDec { // id(x: Int) = x
+                name: ident::make("id"),
+                params: vec!(int_sort()),
+                ret: int_sort(),
+            }),
+            Command::DeclareSort(ident::make("sort1"), 1),
+            Command::DefineFun(FunDef { // incr(x: Int) = x+1
+                name: ident::make("incr"),
+                params: vec!((ident::make("x"), int_sort())),
+                ret: int_sort(),
+                body: FOL::Apply(
+                    Function::Symbol(integer::FunctionSymbol::Add),
+                    vec!(
+                        FOL::Const(Const::Var(ident::make("x"))),
+                        int_literal(1)))
+            }),
+            Command::DefineFunRec(FunDef { // incr(x: Int) = x+1
+                name: ident::make("incr_rec"),
+                params: vec!((ident::make("x"), int_sort())),
+                ret: int_sort(),
+                body: FOL::Apply(
+                    Function::Symbol(integer::FunctionSymbol::Add),
+                    vec!(
+                        FOL::Const(Const::Var(ident::make("x"))),
+                        int_literal(1)))
+            }),
+            Command::DefineFunsRec(vec!(
+                    // even(x: Int) = if x == 0 then 0 else odd(x-1)
+                    FunDef {
+                        name: ident::make("even"),
+                        params: vec!((ident::make("x"), int_sort())),
+                        ret: int_sort(),
+                        body: FOL::Apply(
+                            Function::Symbol(integer::FunctionSymbol::from(boolean::FunctionSymbol::IfThenElse)),
+                            vec!(
+                                FOL::Apply(
+                                    Function::Symbol(integer::FunctionSymbol::from(boolean::FunctionSymbol::Equal)),
+                                    vec!(
+                                        FOL::Const(Const::Var(ident::make("x"))),
+                                        int_literal(1))),
+                                int_literal(0),
+                                FOL::Apply(
+                                    Function::Var(ident::make("odd")),
+                                    vec!(FOL::Apply(
+                                            Function::Symbol(integer::FunctionSymbol::Sub),
+                                            vec!(
+                                                FOL::Const(Const::Var(ident::make("x"))),
+                                                int_literal(1))))))),
+                    },
+                    // odd(x: Int) = even(x-1)
+                    FunDef {
+                        name: ident::make("odd"),
+                        params: vec!((ident::make("x"), int_sort())),
+                        ret: int_sort(),
+                        body: FOL::Apply(
+                            Function::Var(ident::make("even")),
+                            vec!(FOL::Apply(
+                                    Function::Symbol(integer::FunctionSymbol::Sub),
+                                    vec!(
+                                        FOL::Const(Const::Var(ident::make("x"))),
+                                        int_literal(1))))),
+                    })),
+            Command::DefineSort(ident::make("sort_id"), vec!(ident::make("a")), Sort::Var(ident::make("a"))),
+            Command::Echo("some message here!".to_string()),
+            Command::Exit)),
+        vec!(
+            Sexp::List(vec!(
+                util::make_str_atom("assert"),
+                util::make_str_atom("true"))),
+            Sexp::List(vec!(util::make_str_atom("check-sat")))),
+        "sat\nunsat\nsome message here!\n");
 }
 

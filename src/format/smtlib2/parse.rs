@@ -94,6 +94,11 @@ fn const_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(sexp: &Sexp)
         })
 }
 
+fn datatype_dec_of_sexp<T: Smtlib2Theory>(_sexp: &Sexp) -> Result<DatatypeDec<T::SortSymbol>, ParseError>
+{
+    unimplemented!();
+}
+
 fn expr_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(sexp: &Sexp) -> Result<Expr<T, B>, ParseError> {
     match sexp {
         Sexp::List(sexps) => {
@@ -142,6 +147,18 @@ pub fn toplevels<T, B>(toplevels: &Vec<Sexp>) -> Result<Smtlib2<T, B>, ParseErro
     for toplevel in toplevels {
         let cmd = if let Sexp::List(toplevel) = toplevel {
             match toplevel.as_slice() {
+                [Sexp::Atom(Atom::S(head)), expr] if head.as_str() == "assert" => Command::Assert(expr_of_sexp(expr)?),
+                [Sexp::Atom(Atom::S(head))] if head.as_str() == "check-sat" => Command::CheckSat,
+                [Sexp::Atom(Atom::S(head))] if head.as_str() == "check-sat-assuming" => Command::CheckSatAssuming(vec!(), vec!()), // TODO
+                [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(ident)), sort] if head.as_str() == "declare-const" => {
+                    let sort = sort_of_sexp::<T, B>(sort)?;
+                    Command::DeclareConst((ident.clone(), sort))
+                }
+                [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(ident)), datatype_dec] if head.as_str() == "declare-datatype" => {
+                    let datatype = datatype_dec_of_sexp::<T>(datatype_dec)?;
+                    Command::DeclareDatatype(ident.to_string(), datatype)
+                }
+                [Sexp::Atom(Atom::S(head))] if head.as_str() == "declare-datatypes" => unimplemented!(),
                 [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(name)), Sexp::List(params), sort] if head.as_str() == "declare-fun"  => {
                     let params: Result<Vec<_>, _> = params.iter().map(sort_of_sexp::<T, B>).collect();
                     let params = params?;
@@ -152,6 +169,8 @@ pub fn toplevels<T, B>(toplevels: &Vec<Sexp>) -> Result<Smtlib2<T, B>, ParseErro
                         ret: sort,
                     })
                 },
+                [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(ident)), Sexp::Atom(Atom::I(n))] if head.as_str() == "declare-sort" =>
+                    Command::DeclareSort(ident.clone(), *n),
                 [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(name)), params, sort, expr] if head.as_str() == "define-fun" => {
                     let params = params_of_sexp::<T, B>(params)?;
                     let sort = sort_of_sexp::<T, B>(sort)?;
@@ -163,8 +182,29 @@ pub fn toplevels<T, B>(toplevels: &Vec<Sexp>) -> Result<Smtlib2<T, B>, ParseErro
                         body: expr,
                     })
                 },
-                [Sexp::Atom(Atom::S(head)), expr] if head.as_str() == "assert" => Command::Assert(expr_of_sexp(expr)?),
-                [Sexp::Atom(Atom::S(head))] if head.as_str() == "check-sat" => Command::CheckSat,
+                [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(name)), params, sort, expr] if head.as_str() == "define-fun-rec" => {
+                    let params = params_of_sexp::<T, B>(params)?;
+                    let sort = sort_of_sexp::<T, B>(sort)?;
+                    let expr = expr_of_sexp(expr)?;
+                    Command::DefineFunRec(FunDef {
+                        name: name.to_string(),
+                        params: params,
+                        ret: sort,
+                        body: expr,
+                    })
+                },
+                [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(ident)), Sexp::List(params), sort] if head.as_str() == "define-sort" => {
+                    let params: Result<Vec<_>, _> = params.iter().map(|param| {
+                        if let Sexp::Atom(Atom::S(ident)) = param {
+                            Ok(ident.clone())
+                        } else {
+                            Err(ParseError::new(format!("ident expected, but {} come", param)))
+                        }
+                    }).collect();
+                    let params = params?;
+                    let sort = sort_of_sexp::<T, B>(sort)?;
+                    Command::DefineSort(ident.clone(), params, sort)
+                },
                 toplevel => return Err(ParseError::new(format!("invalid toplevel {:?}", toplevel))),
             }
         } else {
