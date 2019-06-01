@@ -159,51 +159,64 @@ fn sexp_of_declare_const<T: Smtlib2Theory>((ref ident, ref sort): &SortedSymbol<
             sexp_of_sort::<T>(sort)?)))
 }
 
-fn sexp_of_datatype_dec<T: Smtlib2Theory>(datatype: &DatatypeDec<T::SortSymbol>) -> Result<Sexp, PrintError> {
-    let mut result = vec!();
+fn sexp_of_selector_dec<T: Smtlib2Theory>(selector_dec: &SelectorDec<T::SortSymbol>) -> Result<Sexp, PrintError> {
+    Ok(Sexp::List(vec!(
+                util::make_str_atom(&selector_dec.name),
+                sexp_of_sort::<T>(&selector_dec.sort)?)))
+}
 
-    let ctors: Result<Vec<Sexp>, PrintError> = datatype.ctors.iter().map(|(ident, params)| {
-        let params: Result<Vec<Sexp>, PrintError> = params.iter().map(|(ident, sort)| {
-            let sort = sexp_of_sort::<T>(sort)?;
-            Ok(Sexp::List(vec!(
-                    util::make_str_atom(ident.as_str()),
-                    sort)))
-        }).collect();
-        let params: Vec<Sexp> = params?;
-        Ok(Sexp::List(vec!(
-            util::make_str_atom(ident.as_str()),
-            Sexp::List(params))))
+fn sexp_of_constructor_dec<T: Smtlib2Theory>(constructor_dec: &ConstructorDec<T::SortSymbol>) -> Result<Sexp, PrintError> {
+    let mut result = vec!(util::make_str_atom(constructor_dec.name.as_str()));
+    for selector_dec in constructor_dec.selector_decs.iter() {
+        result.push(sexp_of_selector_dec::<T>(selector_dec)?);
+    }
+    Ok(Sexp::List(result))
+}
+
+fn sexp_of_datatype_dec<T: Smtlib2Theory>(datatype_dec: &DatatypeDec<T::SortSymbol>) -> Result<Sexp, PrintError> {
+
+    let ctors: Result<Vec<Sexp>, _> = datatype_dec.constructor_decs.iter().map(|ctor_dec| {
+        sexp_of_constructor_dec::<T>(ctor_dec)
     }).collect();
     let ctors = ctors?;
 
-    if datatype.param.is_empty() {
-        result.push(util::make_str_atom("par"));
-        let params = datatype.param.iter().map(|ident| util::make_str_atom(ident.as_str())).collect();
-        result.push(Sexp::List(params));
-        result.push(Sexp::List(ctors));
-        Ok(Sexp::List(result))
-    } else {
+    if datatype_dec.params.is_empty() {
         Ok(Sexp::List(ctors))
+    } else {
+        let params: Vec<Sexp> = datatype_dec.params.iter().map(|param| {
+            util::make_str_atom(param.as_str())
+        }).collect();
+        let params = Sexp::List(vec!(
+            util::make_str_atom("par"),
+            Sexp::List(params)));
+        let datatype = vec!(params, Sexp::List(ctors));
+        Ok(Sexp::List(datatype))
     }
 }
 
-fn sexp_of_declare_datatype<T: Smtlib2Theory>(ident: &String, datatype_dec: &DatatypeDec<T::SortSymbol>) -> Result<Sexp, PrintError> {
+fn sexp_of_declare_datatype<T: Smtlib2Theory>(datatype_dec: &DatatypeDec<T::SortSymbol>) -> Result<Sexp, PrintError> {
     Ok(Sexp::List(vec!(
             util::make_str_atom("declare-datatype"),
-            util::make_str_atom(ident.as_str()),
+            util::make_str_atom(datatype_dec.name.as_str()),
             sexp_of_datatype_dec::<T>(datatype_dec)?)))
 }
 
-fn sexp_of_declare_datatypes<T: Smtlib2Theory>(datatypes: &Vec<(Ident, i64, DatatypeDec<T::SortSymbol>)>) -> Result<Sexp, PrintError> {
+fn sexp_of_declare_datatypes<T: Smtlib2Theory>(sort_decs: &Vec<Ident>, datatype_decs: &Vec<DatatypeDec<T::SortSymbol>>) -> Result<Sexp, PrintError> {
 
     let mut sorts_sexp = vec!();
     let mut datatypes_sexp = vec!();
 
-    for (sort_ident, sort_num, datatype) in datatypes.iter() {
-        sorts_sexp.push(Sexp::List(vec!(
-                    util::make_str_atom(sort_ident.as_str()),
-                    util::make_int_atom(*sort_num))));
-        datatypes_sexp.push(sexp_of_datatype_dec::<T>(datatype)?);
+    for ident in sort_decs.iter() {
+        sorts_sexp.push(util::make_str_atom(ident.as_str()));
+    }
+    for datatype_dec in datatype_decs.iter() {
+        let mut inner = vec!(util::make_str_atom(datatype_dec.name.as_str()));
+        if let Sexp::List(mut datatype) = sexp_of_datatype_dec::<T>(&datatype_dec)? {
+            inner.append(&mut datatype);
+        } else {
+            unreachable!();
+        }
+        datatypes_sexp.push(Sexp::List(inner));
     }
 
     Ok(Sexp::List(vec!(
@@ -251,8 +264,8 @@ pub fn toplevels<T, B>(smtlib2: &Smtlib2<T, B>) -> Result<Vec<Sexp>, PrintError>
             CheckSat => sexp_of_check_sat(),
             CheckSatAssuming(pos, neg) => sexp_of_check_sat_assuming(pos, neg),
             DeclareConst(sorted_symbol) => sexp_of_declare_const::<T>(sorted_symbol),
-            DeclareDatatype(ident, datatype) => sexp_of_declare_datatype::<T>(ident, datatype),
-            DeclareDatatypes(datatypes) => sexp_of_declare_datatypes::<T>(datatypes),
+            DeclareDatatype(datatype) => sexp_of_declare_datatype::<T>(datatype),
+            DeclareDatatypes(sort_decs, datatype_decs) => sexp_of_declare_datatypes::<T>(sort_decs, datatype_decs),
             DeclareFun(dec_fun) => sexp_of_fundec(&dec_fun),
             DeclareSort(ident, n) => sexp_of_declare_sort(ident, *n),
             DefineFun(def_fun) => sexp_of_fundef(&def_fun),

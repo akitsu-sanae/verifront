@@ -154,9 +154,9 @@ pub fn toplevels<T, B>(toplevels: &Vec<Sexp>) -> Result<Smtlib2<T, B>, ParseErro
                     let sort = sort_of_sexp::<T, B>(sort)?;
                     Command::DeclareConst((ident.clone(), sort))
                 }
-                [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(ident)), datatype_dec] if head.as_str() == "declare-datatype" => {
-                    let datatype = datatype_dec_of_sexp::<T>(datatype_dec)?;
-                    Command::DeclareDatatype(ident.to_string(), datatype)
+                [Sexp::Atom(Atom::S(head)), datatype_dec] if head.as_str() == "declare-datatype" => {
+                    let datatype_dec = datatype_dec_of_sexp::<T>(datatype_dec)?;
+                    Command::DeclareDatatype(datatype_dec)
                 }
                 [Sexp::Atom(Atom::S(head))] if head.as_str() == "declare-datatypes" => unimplemented!(),
                 [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(name)), Sexp::List(params), sort] if head.as_str() == "declare-fun"  => {

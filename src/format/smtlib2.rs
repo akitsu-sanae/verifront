@@ -25,9 +25,22 @@ pub trait Smtlib2Binder : IsBinder + Sized {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SelectorDec<SS: IsSortSymbol> {
+    pub name: Ident,
+    pub sort: Sort<SS>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConstructorDec<SS: IsSortSymbol> {
+    pub name: Ident,
+    pub selector_decs: Vec<SelectorDec<SS>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DatatypeDec<SS: IsSortSymbol> {
-    pub param: Vec<Ident>,
-    pub ctors: Vec<(Ident, Vec<SortedSymbol<SS>>)>,
+    pub name: Ident,
+    pub params: Vec<Ident>,
+    pub constructor_decs: Vec<ConstructorDec<SS>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -84,8 +97,8 @@ pub enum Command<T: Smtlib2Theory, B: Smtlib2Binder> { // version 2.6
     CheckSat,
     CheckSatAssuming(Vec<Ident>, Vec<Ident>), // positives and negativs
     DeclareConst(SortedSymbol<T::SortSymbol>),
-    DeclareDatatype(Ident, DatatypeDec<T::SortSymbol>),
-    DeclareDatatypes(Vec<(Ident, i64, DatatypeDec<T::SortSymbol>)>),
+    DeclareDatatype(DatatypeDec<T::SortSymbol>),
+    DeclareDatatypes(Vec<Ident>, Vec<DatatypeDec<T::SortSymbol>>),
     DeclareFun(FunDec<T>),
     DeclareSort(Ident, i64),
     DefineFun(FunDef<T, B>),
