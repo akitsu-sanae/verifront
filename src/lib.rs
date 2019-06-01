@@ -5,12 +5,11 @@
 
 extern crate sexp;
 
+pub mod format;
+pub mod ident;
 pub mod logic;
 pub mod program;
-pub mod ident;
-pub mod format;
 mod util;
 
 #[cfg(test)]
 mod test;
-

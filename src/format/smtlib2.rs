@@ -1,7 +1,7 @@
-use sexp::Sexp;
-use crate::ident::Ident;
-use crate::logic::{expr::*, theory::*, binder::*};
 use super::Format;
+use crate::ident::Ident;
+use crate::logic::{binder::*, expr::*, theory::*};
+use sexp::Sexp;
 
 mod print;
 pub use print::PrintError;
@@ -9,7 +9,7 @@ pub use print::PrintError;
 mod parse;
 pub use parse::ParseError;
 
-pub trait Smtlib2Theory : Theory {
+pub trait Smtlib2Theory: Theory {
     fn sexp_of_sort_symbol(ss: &Self::SortSymbol) -> Result<Sexp, PrintError>;
     fn sexp_of_function_symbol(fs: &Self::FunctionSymbol) -> Result<Sexp, PrintError>;
     fn sexp_of_const_symbol(c: &Self::ConstSymbol) -> Result<Sexp, PrintError>;
@@ -19,7 +19,7 @@ pub trait Smtlib2Theory : Theory {
     fn const_symbol_of_sexp(expr: &Sexp) -> Result<Self::ConstSymbol, ParseError>;
 }
 
-pub trait Smtlib2Binder : IsBinder + Sized {
+pub trait Smtlib2Binder: IsBinder + Sized {
     fn sexp_of_binder(&self) -> Result<Sexp, PrintError>;
     fn binder_of_sexp(expr: &Sexp) -> Result<Self, ParseError>;
 }
@@ -92,7 +92,8 @@ pub enum InfoFlag {
 } */
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Command<T: Smtlib2Theory, B: Smtlib2Binder> { // version 2.6
+pub enum Command<T: Smtlib2Theory, B: Smtlib2Binder> {
+    // version 2.6
     Assert(Expr<T, B>),
     CheckSat,
     CheckSatAssuming(Vec<Ident>, Vec<Ident>), // positives and negativs
@@ -133,14 +134,14 @@ pub struct Smtlib2<T: Smtlib2Theory, B: Smtlib2Binder> {
 
 impl<T: Smtlib2Theory, B: Smtlib2Binder> Smtlib2<T, B> {
     pub fn new(cmds: Vec<Command<T, B>>) -> Self {
-        Self {
-            commands: cmds,
-        }
+        Self { commands: cmds }
     }
 }
 
-impl<T, B> Format<Vec<Sexp>> for Smtlib2<T,B>
-    where T: Smtlib2Theory, B: Smtlib2Binder
+impl<T, B> Format<Vec<Sexp>> for Smtlib2<T, B>
+where
+    T: Smtlib2Theory,
+    B: Smtlib2Binder,
 {
     type PrintError = PrintError;
     type ParseError = ParseError;

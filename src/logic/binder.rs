@@ -1,9 +1,9 @@
-use crate::format::smtlib2::{Smtlib2Binder, PrintError, ParseError};
+use crate::format::smtlib2::{ParseError, PrintError, Smtlib2Binder};
 use crate::util;
-use sexp::{Sexp, Atom};
+use sexp::{Atom, Sexp};
 
 use std::fmt::Debug;
-pub trait IsBinder : Debug + PartialEq + Eq {}
+pub trait IsBinder: Debug + PartialEq + Eq {}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EmptyBinder {}
@@ -22,7 +22,8 @@ impl Smtlib2Binder for EmptyBinder {
 /// Quantifier Symbols
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Quantifier {
-    Forall, Exists
+    Forall,
+    Exists,
 }
 
 impl IsBinder for Quantifier {}
@@ -40,12 +41,13 @@ impl Smtlib2Binder for Quantifier {
             match str.as_str() {
                 "forall" => Ok(Quantifier::Forall),
                 "exists" => Ok(Quantifier::Exists),
-                str => Err(ParseError::new(format!("unknown binder : {}", str)))
+                str => Err(ParseError::new(format!("unknown binder : {}", str))),
             }
         } else {
-            Err(ParseError::new(format!("invalid sexp as binder : {}", expr)))
+            Err(ParseError::new(format!(
+                "invalid sexp as binder : {}",
+                expr
+            )))
         }
     }
 }
-
-

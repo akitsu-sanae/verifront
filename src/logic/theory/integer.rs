@@ -1,11 +1,11 @@
-use crate::util;
-use crate::logic::theory::*;
 use crate::format::smtlib2::Smtlib2Theory;
+use crate::logic::theory::*;
+use crate::util;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SortSymbol {
     Bool,
-    Int
+    Int,
 }
 
 use std::convert::From;
@@ -13,7 +13,7 @@ impl From<Sort<boolean::SortSymbol>> for Sort<SortSymbol> {
     fn from(s: Sort<boolean::SortSymbol>) -> Sort<SortSymbol> {
         match s {
             Sort::Symbol(ss) => Sort::Symbol(SortSymbol::from(ss)),
-            Sort::Var(ident) => Sort::Var(ident)
+            Sort::Var(ident) => Sort::Var(ident),
         }
     }
 }
@@ -29,8 +29,14 @@ impl IsSortSymbol for SortSymbol {}
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FunctionSymbol {
     Boolean(boolean::FunctionSymbol),
-    Add, Sub, Mult, Div,
-    Lt, Gt, Leq, Geq
+    Add,
+    Sub,
+    Mult,
+    Div,
+    Lt,
+    Gt,
+    Leq,
+    Geq,
 }
 
 impl From<boolean::FunctionSymbol> for FunctionSymbol {
@@ -41,21 +47,25 @@ impl From<boolean::FunctionSymbol> for FunctionSymbol {
 
 impl IsFunctionSymbol<SortSymbol> for FunctionSymbol {
     fn arg_sorts(&self) -> Vec<Sort<SortSymbol>> {
-        use SortSymbol::*;
         use FunctionSymbol::*;
+        use SortSymbol::*;
         match self {
             Boolean(bool_ss) => {
                 let sorts = boolean::FunctionSymbol::arg_sorts(bool_ss);
-                sorts.into_iter().map(|sort| Sort::<SortSymbol>::from(sort)).collect()
-            },
-            Add | Sub | Mult | Div |
-            Lt | Gt | Leq | Geq => vec!(Sort::Symbol(Int), Sort::Symbol(Int)),
+                sorts
+                    .into_iter()
+                    .map(|sort| Sort::<SortSymbol>::from(sort))
+                    .collect()
+            }
+            Add | Sub | Mult | Div | Lt | Gt | Leq | Geq => {
+                vec![Sort::Symbol(Int), Sort::Symbol(Int)]
+            }
         }
     }
 
     fn ret_sort(&self) -> Sort<SortSymbol> {
-        use SortSymbol::*;
         use FunctionSymbol::*;
+        use SortSymbol::*;
         match self {
             Boolean(bool_ss) => match boolean::FunctionSymbol::ret_sort(bool_ss) {
                 Sort::Var(ident) => Sort::Var(ident),
@@ -67,11 +77,10 @@ impl IsFunctionSymbol<SortSymbol> for FunctionSymbol {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConstSymbol {
     Boolean(boolean::ConstSymbol),
-    Number(i64)
+    Number(i64),
 }
 
 impl From<boolean::ConstSymbol> for ConstSymbol {
@@ -106,8 +115,8 @@ impl Theory for Integer {
     type ConstSymbol = ConstSymbol;
 }
 
-use sexp::{Sexp, Atom};
-use crate::format::smtlib2::{PrintError, ParseError};
+use crate::format::smtlib2::{ParseError, PrintError};
+use sexp::{Atom, Sexp};
 impl Smtlib2Theory for Integer {
     fn sexp_of_sort_symbol(ss: &SortSymbol) -> Result<Sexp, PrintError> {
         Ok(match ss {
@@ -145,10 +154,13 @@ impl Smtlib2Theory for Integer {
             match str.as_str() {
                 "Bool" => Ok(Bool),
                 "Int" => Ok(Int),
-                s => Err(ParseError::new(format!("unknown sort symbol : {}", s)))
+                s => Err(ParseError::new(format!("unknown sort symbol : {}", s))),
             }
         } else {
-            Err(ParseError::new(format!("invalid sexp as sort symbol : {}", expr)))
+            Err(ParseError::new(format!(
+                "invalid sexp as sort symbol : {}",
+                expr
+            )))
         }
     }
 
@@ -164,10 +176,13 @@ impl Smtlib2Theory for Integer {
                 ">" => Ok(Gt),
                 "<=" => Ok(Leq),
                 ">=" => Ok(Geq),
-                s => Err(ParseError::new(format!("unknown function symbol : {}", s)))
+                s => Err(ParseError::new(format!("unknown function symbol : {}", s))),
             }
         } else {
-            Err(ParseError::new(format!("invalid sexp as function symbol : {}", expr)))
+            Err(ParseError::new(format!(
+                "invalid sexp as function symbol : {}",
+                expr
+            )))
         };
         int_fun.or_else(|_| match boolean::Boolean::function_symbol_of_sexp(expr) {
             Ok(bf) => Ok(FunctionSymbol::from(bf)),
@@ -182,9 +197,8 @@ impl Smtlib2Theory for Integer {
         } else {
             match boolean::Boolean::const_symbol_of_sexp(expr) {
                 Ok(bc) => Ok(Boolean(bc)),
-                Err(err) => Err(err)
+                Err(err) => Err(err),
             }
         }
     }
 }
-

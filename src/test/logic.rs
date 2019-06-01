@@ -1,5 +1,5 @@
 use crate::ident;
-use crate::logic::{expr::*, theory::*, binder::*};
+use crate::logic::{binder::*, expr::*, theory::*};
 
 use super::debug_print_check;
 
@@ -9,7 +9,7 @@ fn make_var<T: Theory, B: IsBinder>(name: &str) -> Expr<T, B> {
 
 #[test]
 fn theory() {
-    use crate::logic::theory::boolean::{SortSymbol::*, FunctionSymbol::*, ConstSymbol::*};
+    use crate::logic::theory::boolean::{ConstSymbol::*, FunctionSymbol::*, SortSymbol::*};
 
     debug_print_check(make_var("A") as Propos, r#"Const(Var("A"))"#);
 
@@ -41,4 +41,3 @@ fn theory() {
                 ))),
                 r#"Binding(Forall, [("a", Symbol(Bool))], Apply(Symbol(Equal), [Const(Var("a")), Const(Symbol(True))]))"#);
 }
-

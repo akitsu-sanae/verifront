@@ -1,7 +1,7 @@
-use crate::ident;
-use crate::util;
-use crate::logic::theory::*;
 use crate::format::smtlib2::Smtlib2Theory;
+use crate::ident;
+use crate::logic::theory::*;
+use crate::util;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SortSymbol {
@@ -10,31 +10,30 @@ pub enum SortSymbol {
 
 impl IsSortSymbol for SortSymbol {}
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FunctionSymbol {
     Not,
-    And, Or, Imply, Equal, IfThenElse,
+    And,
+    Or,
+    Imply,
+    Equal,
+    IfThenElse,
 }
 
 impl IsFunctionSymbol<SortSymbol> for FunctionSymbol {
     fn arg_sorts(&self) -> Vec<Sort<SortSymbol>> {
-        use SortSymbol::*;
         use FunctionSymbol::*;
+        use SortSymbol::*;
         match self {
-            Not => vec!(Sort::Symbol(Bool)),
-            And | Or | Imply => vec!(
-                Sort::Symbol(Bool),
-                Sort::Symbol(Bool)),
-            Equal | IfThenElse => vec!(
-                Sort::Var(ident::make("A")),
-                Sort::Var(ident::make("A"))),
+            Not => vec![Sort::Symbol(Bool)],
+            And | Or | Imply => vec![Sort::Symbol(Bool), Sort::Symbol(Bool)],
+            Equal | IfThenElse => vec![Sort::Var(ident::make("A")), Sort::Var(ident::make("A"))],
         }
     }
 
     fn ret_sort(&self) -> Sort<SortSymbol> {
-        use SortSymbol::*;
         use FunctionSymbol::*;
+        use SortSymbol::*;
         match self {
             Not | And | Or | Imply => Sort::Symbol(Bool),
             Equal | IfThenElse => Sort::Var(ident::make("A")),
@@ -44,7 +43,8 @@ impl IsFunctionSymbol<SortSymbol> for FunctionSymbol {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConstSymbol {
-    True, False
+    True,
+    False,
 }
 
 impl IsConstSymbol<SortSymbol> for ConstSymbol {
@@ -66,9 +66,8 @@ impl Theory for Boolean {
     type ConstSymbol = ConstSymbol;
 }
 
-
-use sexp::{Sexp, Atom};
-use crate::format::smtlib2::{PrintError, ParseError};
+use crate::format::smtlib2::{ParseError, PrintError};
+use sexp::{Atom, Sexp};
 impl Smtlib2Theory for Boolean {
     fn sexp_of_sort_symbol(ss: &SortSymbol) -> Result<Sexp, PrintError> {
         match ss {
@@ -99,10 +98,13 @@ impl Smtlib2Theory for Boolean {
         if let Sexp::Atom(Atom::S(str)) = expr {
             match str.as_str() {
                 "Bool" => Ok(SortSymbol::Bool),
-                s => Err(ParseError::new(format!("unknown sort symbol : {}", s)))
+                s => Err(ParseError::new(format!("unknown sort symbol : {}", s))),
             }
         } else {
-            Err(ParseError::new(format!("invalid sexp as sort symbol : {}", expr)))
+            Err(ParseError::new(format!(
+                "invalid sexp as sort symbol : {}",
+                expr
+            )))
         }
     }
 
@@ -116,10 +118,13 @@ impl Smtlib2Theory for Boolean {
                 "=>" => Ok(Imply),
                 "=" => Ok(Equal),
                 "ite" => Ok(IfThenElse),
-                str => Err(ParseError::new(format!("unknown function symbol: {}", str)))
+                str => Err(ParseError::new(format!("unknown function symbol: {}", str))),
             }
         } else {
-            Err(ParseError::new(format!("invalid sexp as function symbol : {}", expr)))
+            Err(ParseError::new(format!(
+                "invalid sexp as function symbol : {}",
+                expr
+            )))
         }
     }
 
@@ -133,4 +138,3 @@ impl Smtlib2Theory for Boolean {
         }
     }
 }
-
