@@ -13,10 +13,7 @@ fn check_with_z3<T: Smtlib2Theory, B: Smtlib2Binder>(
 ) {
     assert_eq!(Smtlib2::<T, B>::print(&smtlib2).unwrap(), sexpr);
 
-    /*
-    assert_eq!(
-        smtlib2,
-        Smtlib2::<T, B>::parse(&sexpr).unwrap()); */
+    assert_eq!(smtlib2, Smtlib2::<T, B>::parse(&sexpr).unwrap());
 
     use std::io::Write;
 
