@@ -1,5 +1,6 @@
 mod format;
 mod logic;
+mod sortcheck;
 mod program;
 
 fn debug_print_check<T: std::fmt::Debug>(x: T, s: &str) {
