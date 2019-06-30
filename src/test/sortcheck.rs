@@ -14,47 +14,62 @@ fn check(expr: FOL, sort: Sort<integer::SortSymbol>) {
 
 #[test]
 fn literal() {
-    use crate::logic::theory::integer::{*, FunctionSymbol::*};
     use crate::logic::theory::boolean::{ConstSymbol::*, FunctionSymbol::*};
+    use crate::logic::theory::integer::{FunctionSymbol::*, *};
 
-    check( // True
+    check(
+        // True
         FOL::Const(Const::Symbol(ConstSymbol::Boolean(True))),
-        Sort::Symbol(SortSymbol::Bool));
+        Sort::Symbol(SortSymbol::Bool),
+    );
 
-    check( // 42
+    check(
+        // 42
         FOL::Const(Const::Symbol(ConstSymbol::Number(42))),
-        Sort::Symbol(SortSymbol::Int));
+        Sort::Symbol(SortSymbol::Int),
+    );
 }
 
 #[test]
 fn binding() {
-    use crate::logic::theory::integer::{*, FunctionSymbol::*};
     use crate::logic::theory::boolean::{ConstSymbol::*, FunctionSymbol::*};
+    use crate::logic::theory::integer::{FunctionSymbol::*, *};
 
-    check( // forall a: Bool. a = true
+    check(
+        // forall a: Bool. a = true
         FOL::Binding(
             Quantifier::Forall,
-            vec!((ident::make("a"), Sort::Symbol(SortSymbol::Bool))),
+            vec![(ident::make("a"), Sort::Symbol(SortSymbol::Bool))],
             box FOL::Apply(
                 Function::Symbol(FunctionSymbol::Boolean(Equal)),
-                vec!(
+                vec![
                     make_var("a"),
                     FOL::Const(Const::Symbol(ConstSymbol::Boolean(True))),
-                ))),
-        Sort::Symbol(SortSymbol::Bool));
+                ],
+            ),
+        ),
+        Sort::Symbol(SortSymbol::Bool),
+    );
 
-    check( // exists a: Int. 42 + a = 0
+    check(
+        // exists a: Int. 42 + a = 0
         FOL::Binding(
             Quantifier::Exists,
-            vec!((ident::make("a"), Sort::Symbol(SortSymbol::Int))),
+            vec![(ident::make("a"), Sort::Symbol(SortSymbol::Int))],
             box FOL::Apply(
                 Function::Symbol(FunctionSymbol::Boolean(Equal)),
-                vec!(
+                vec![
                     FOL::Apply(
                         Function::Symbol(Add),
-                        vec!(
+                        vec![
                             FOL::Const(Const::Symbol(ConstSymbol::Number(42))),
-                            make_var("a"))),
-                    FOL::Const(Const::Symbol(ConstSymbol::Number(0)))))),
-        Sort::Symbol(SortSymbol::Bool));
+                            make_var("a"),
+                        ],
+                    ),
+                    FOL::Const(Const::Symbol(ConstSymbol::Number(0))),
+                ],
+            ),
+        ),
+        Sort::Symbol(SortSymbol::Bool),
+    );
 }
