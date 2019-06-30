@@ -278,6 +278,10 @@ fn datatype() {
 fn commands() {
     check_with_z3(
         Smtlib2::new(vec![
+            Command::SetOption(Option::InteractiveMode(true)),
+            Command::SetOption(Option::ProduceProofs(true)),
+            Command::SetOption(Option::ProduceUnsatAssumptions(true)),
+            Command::SetOption(Option::ProduceUnsatCores(true)),
             Command::DeclareConst((ident::make("A"), int_sort())),
             Command::DeclareConst((ident::make("B"), bool_sort())),
             Command::Assert(FOL::Const(Const::Symbol(integer::ConstSymbol::Boolean(
@@ -432,9 +436,38 @@ fn commands() {
                 Sort::Var(ident::make("a")),
             ),
             Command::Echo("some message here!".to_string()),
+            Command::GetAssertions,
+            Command::GetInfo(InfoFlag::Version),
+            Command::GetProof,
+            Command::GetUnsatAssumptions,
+            Command::GetUnsatCore,
+            Command::Push(1),
+            Command::Pop(1),
+            Command::Reset,
+            Command::ResetAssertions,
             Command::Exit,
         ]),
         vec![
+            Sexp::List(vec![
+                util::make_str_atom("set-option"),
+                util::make_str_atom(":interactive-mode"),
+                util::make_str_atom("true"),
+            ]),
+            Sexp::List(vec![
+                util::make_str_atom("set-option"),
+                util::make_str_atom(":produce-proofs"),
+                util::make_str_atom("true"),
+            ]),
+            Sexp::List(vec![
+                util::make_str_atom("set-option"),
+                util::make_str_atom(":produce-unsat-assumptions"),
+                util::make_str_atom("true"),
+            ]),
+            Sexp::List(vec![
+                util::make_str_atom("set-option"),
+                util::make_str_atom(":produce-unsat-cores"),
+                util::make_str_atom("true"),
+            ]),
             Sexp::List(vec![
                 util::make_str_atom("declare-const"),
                 util::make_str_atom("A"),
@@ -599,8 +632,30 @@ fn commands() {
                 util::make_str_atom("echo"),
                 util::make_str_atom(r"some message here!"),
             ]),
+            Sexp::List(vec![util::make_str_atom("get-assertions")]),
+            Sexp::List(vec![
+                util::make_str_atom("get-info"),
+                util::make_str_atom(":version"),
+            ]),
+            Sexp::List(vec![util::make_str_atom("get-proof")]),
+            Sexp::List(vec![util::make_str_atom("get-unsat-assumptions")]),
+            Sexp::List(vec![util::make_str_atom("get-unsat-core")]),
+            Sexp::List(vec![util::make_str_atom("push"), util::make_int_atom(1)]),
+            Sexp::List(vec![util::make_str_atom("pop"), util::make_int_atom(1)]),
+            Sexp::List(vec![util::make_str_atom("reset")]),
+            Sexp::List(vec![util::make_str_atom("reset-assertions")]),
             Sexp::List(vec![util::make_str_atom("exit")]),
         ],
-        "sat\nunsat\nsome message here!\n",
+        r#"sat
+unsat
+some message here!
+(true)
+(:version "4.8.5")
+((proof
+(unit-resolution (asserted B) (asserted (not B)) false)))
+
+(B (not B))
+(B (not B))
+"#,
     );
 }

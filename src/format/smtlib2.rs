@@ -58,7 +58,19 @@ pub struct FunDef<T: Smtlib2Theory, B: Smtlib2Binder> {
     pub body: Expr<T, B>,
 }
 
-/*
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AttributeValue {
+    SpecConstant(String), // FIXME
+    Symbol(Ident),
+    // Sexp(Sexp), NOTE: no Eq implemention for Sexp
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Attribute {
+    Keyword(String),
+    KeywordWithAttributeValue(String, AttributeValue),
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Option {
     DiagnosticOutputChannel(String),
@@ -76,9 +88,8 @@ pub enum Option {
     ReproducibleResourceLimit(i64),
     Verbosity(i64),
     Attribute(Attribute),
-} */
+}
 
-/*
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InfoFlag {
     AllStatistics,
@@ -88,8 +99,8 @@ pub enum InfoFlag {
     Name,
     ReasonUnknown,
     Version,
-    Keyword(Keyword),
-} */
+    Keyword(String),
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command<T: Smtlib2Theory, B: Smtlib2Binder> {
@@ -108,12 +119,11 @@ pub enum Command<T: Smtlib2Theory, B: Smtlib2Binder> {
     DefineSort(Ident, Vec<Ident>, Sort<T::SortSymbol>),
     Echo(String),
     Exit,
-    /*
     GetAssertions,
     GetAssignment,
     GetInfo(InfoFlag),
     GetModel,
-    GetOption(Keyword),
+    GetOption(String),
     GetProof,
     GetUnsatAssumptions,
     GetUnsatCore,
@@ -123,8 +133,8 @@ pub enum Command<T: Smtlib2Theory, B: Smtlib2Binder> {
     Reset,
     ResetAssertions,
     SetInfo(Attribute),
-    SetLogic(Ident),
-    SetOption(Option), */
+    SetLogic(String),
+    SetOption(Option),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

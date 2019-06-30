@@ -324,6 +324,134 @@ fn expr_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(sexp: &Sexp) -> Result<Expr<
     }
 }
 
+fn info_flag_of_str(str: &str) -> InfoFlag {
+    use InfoFlag::*;
+    match str {
+        ":all-statistics" => AllStatistics,
+        ":assertion-stack-levels" => AssertionStackLevels,
+        ":authors" => Authors,
+        ":error-behavior" => ErrorBehavior,
+        ":name" => Name,
+        ":reason-unknown" => ReasonUnknown,
+        ":version" => Version,
+        str => Keyword(str.to_string()),
+    }
+}
+
+fn attr_value_of_sexp(sexp: &Sexp) -> Result<AttributeValue, ParseError> {
+    use AttributeValue::*;
+    Ok(match sexp {
+        // FIXME
+        Sexp::Atom(Atom::S(str)) => Symbol(str.clone()),
+        sexp => {
+            return Err(ParseError::new(format!(
+                "invalid sexp as attribute value : {:?}",
+                sexp
+            )))
+        }
+    })
+}
+
+fn attr_of_sexp(sexp: &[Sexp]) -> Result<Attribute, ParseError> {
+    use Attribute::*;
+    Ok(match sexp {
+        [Sexp::Atom(Atom::S(str))] => Keyword(str.clone()),
+        [Sexp::Atom(Atom::S(str)), attr_value] => {
+            KeywordWithAttributeValue(str.clone(), attr_value_of_sexp(attr_value)?)
+        }
+        sexp => {
+            return Err(ParseError::new(format!(
+                "invalid sexp as attribute : {:?}",
+                sexp
+            )))
+        }
+    })
+}
+
+fn sexp_to_bool(str: &String) -> Result<bool, ParseError> {
+    Ok(match str.as_str() {
+        "true" => true,
+        "false" => false,
+        e => return Err(ParseError::new(format!("invalid sexp as bool : {:?}", e))),
+    })
+}
+
+fn option_of_sexp(opt: &[Sexp]) -> Result<Option, ParseError> {
+    Ok(match opt {
+        [Sexp::Atom(Atom::S(keyword)), Sexp::Atom(Atom::S(str))]
+            if keyword.as_str() == ":diagnostic-output-channel" =>
+        {
+            Option::DiagnosticOutputChannel(str.clone())
+        }
+        [Sexp::Atom(Atom::S(keyword)), Sexp::Atom(Atom::S(str))]
+            if keyword.as_str() == ":global-declarations" =>
+        {
+            Option::GlobalDeclarations(sexp_to_bool(str)?)
+        }
+        [Sexp::Atom(Atom::S(keyword)), Sexp::Atom(Atom::S(str))]
+            if keyword.as_str() == ":interactive-mode" =>
+        {
+            Option::InteractiveMode(sexp_to_bool(str)?)
+        }
+        [Sexp::Atom(Atom::S(keyword)), Sexp::Atom(Atom::S(str))]
+            if keyword.as_str() == ":print-success" =>
+        {
+            Option::PrintSuccess(sexp_to_bool(str)?)
+        }
+        [Sexp::Atom(Atom::S(keyword)), Sexp::Atom(Atom::S(str))]
+            if keyword.as_str() == ":produce-assertions" =>
+        {
+            Option::ProduceAssertions(sexp_to_bool(str)?)
+        }
+        [Sexp::Atom(Atom::S(keyword)), Sexp::Atom(Atom::S(str))]
+            if keyword.as_str() == ":produce-assignment" =>
+        {
+            Option::ProduceAssignments(sexp_to_bool(str)?)
+        }
+        [Sexp::Atom(Atom::S(keyword)), Sexp::Atom(Atom::S(str))]
+            if keyword.as_str() == ":produce-models" =>
+        {
+            Option::ProduceModels(sexp_to_bool(str)?)
+        }
+        [Sexp::Atom(Atom::S(keyword)), Sexp::Atom(Atom::S(str))]
+            if keyword.as_str() == ":produce-proofs" =>
+        {
+            Option::ProduceProofs(sexp_to_bool(str)?)
+        }
+        [Sexp::Atom(Atom::S(keyword)), Sexp::Atom(Atom::S(str))]
+            if keyword.as_str() == ":produce-unsat-assumptions" =>
+        {
+            Option::ProduceUnsatAssumptions(sexp_to_bool(str)?)
+        }
+        [Sexp::Atom(Atom::S(keyword)), Sexp::Atom(Atom::S(str))]
+            if keyword.as_str() == ":produce-unsat-cores" =>
+        {
+            Option::ProduceUnsatCores(sexp_to_bool(str)?)
+        }
+        [Sexp::Atom(Atom::S(keyword)), Sexp::Atom(Atom::I(n))]
+            if keyword.as_str() == ":random-seed" =>
+        {
+            Option::RandomSeed(*n)
+        }
+        [Sexp::Atom(Atom::S(keyword)), Sexp::Atom(Atom::S(str))]
+            if keyword.as_str() == ":regular-output-channel" =>
+        {
+            Option::RegularOutputChannel(str.clone())
+        }
+        [Sexp::Atom(Atom::S(keyword)), Sexp::Atom(Atom::I(n))]
+            if keyword.as_str() == ":reproducible-resource-limit" =>
+        {
+            Option::ReproducibleResourceLimit(*n)
+        }
+        [Sexp::Atom(Atom::S(keyword)), Sexp::Atom(Atom::I(n))]
+            if keyword.as_str() == ":verbosity" =>
+        {
+            Option::Verbosity(*n)
+        }
+        attr => Option::Attribute(attr_of_sexp(attr)?),
+    })
+}
+
 pub fn toplevels<T, B>(toplevels: &Vec<Sexp>) -> Result<Smtlib2<T, B>, ParseError>
 where
     T: Smtlib2Theory,
@@ -443,6 +571,56 @@ where
                     Command::Echo(msg.clone())
                 }
                 [Sexp::Atom(Atom::S(head))] if head.as_str() == "exit" => Command::Exit,
+                [Sexp::Atom(Atom::S(head))] if head.as_str() == "get-assertions" => {
+                    Command::GetAssertions
+                }
+                [Sexp::Atom(Atom::S(head))] if head.as_str() == "get-assignment" => {
+                    Command::GetAssignment
+                }
+                [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(info_flag))]
+                    if head.as_str() == "get-info" =>
+                {
+                    Command::GetInfo(info_flag_of_str(info_flag.as_str()))
+                }
+                [Sexp::Atom(Atom::S(head))] if head.as_str() == "get-model" => Command::GetModel,
+                [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(keyword))]
+                    if head.as_str() == "get-option" =>
+                {
+                    Command::GetOption(keyword.clone())
+                }
+                [Sexp::Atom(Atom::S(head))] if head.as_str() == "get-proof" => Command::GetProof,
+                [Sexp::Atom(Atom::S(head))] if head.as_str() == "get-unsat-assumptions" => {
+                    Command::GetUnsatAssumptions
+                }
+                [Sexp::Atom(Atom::S(head))] if head.as_str() == "get-unsat-core" => {
+                    Command::GetUnsatCore
+                }
+                [Sexp::Atom(Atom::S(head)), Sexp::List(es)] if head.as_str() == "get-value" => {
+                    let es: Result<Vec<_>, _> = es.iter().map(|e| expr_of_sexp(e)).collect();
+                    let es = es?;
+                    Command::GetValue(es)
+                }
+                [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::I(n))] if head.as_str() == "pop" => {
+                    Command::Pop(*n)
+                }
+                [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::I(n))] if head.as_str() == "push" => {
+                    Command::Push(*n)
+                }
+                [Sexp::Atom(Atom::S(head))] if head.as_str() == "reset" => Command::Reset,
+                [Sexp::Atom(Atom::S(head))] if head.as_str() == "reset-assertions" => {
+                    Command::ResetAssertions
+                }
+                [Sexp::Atom(Atom::S(head)), Sexp::List(attr)] if head.as_str() == "set-info" => {
+                    Command::SetInfo(attr_of_sexp(attr)?)
+                }
+                [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(sym))]
+                    if head.as_str() == "set-logic" =>
+                {
+                    Command::SetLogic(sym.clone())
+                }
+                [Sexp::Atom(Atom::S(head)), opt..] if head.as_str() == "set-option" => {
+                    Command::SetOption(option_of_sexp(opt)?)
+                }
                 toplevel => {
                     return Err(ParseError::new(format!("invalid toplevel {:?}", toplevel)))
                 }

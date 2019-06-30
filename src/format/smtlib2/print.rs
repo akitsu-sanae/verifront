@@ -277,10 +277,6 @@ fn sexp_of_declare_datatypes<T: Smtlib2Theory>(
     ]))
 }
 
-fn sexp_of_check_sat() -> Result<Sexp, PrintError> {
-    Ok(Sexp::List(vec![util::make_str_atom("check-sat")]))
-}
-
 fn sexp_of_check_sat_assuming(poss: &Vec<Ident>, negs: &Vec<Ident>) -> Result<Sexp, PrintError> {
     let mut propos = vec![];
     for pos in poss.iter() {
@@ -305,8 +301,150 @@ fn sexp_of_echo(msg: &String) -> Result<Sexp, PrintError> {
     ]))
 }
 
-fn sexp_of_exit() -> Result<Sexp, PrintError> {
-    Ok(Sexp::List(vec![util::make_str_atom("exit")]))
+fn sexp_of_get_info(info: &InfoFlag) -> Result<Sexp, PrintError> {
+    use InfoFlag::*;
+    let info = match info {
+        AllStatistics => ":all-statistics".to_string(),
+        AssertionStackLevels => ":assertion-stack-levels".to_string(),
+        Authors => ":authors".to_string(),
+        ErrorBehavior => ":error-behavior".to_string(),
+        Name => ":name".to_string(),
+        ReasonUnknown => ":reason-unknown".to_string(),
+        Version => ":version".to_string(),
+        Keyword(str) => str.clone(),
+    };
+    Ok(Sexp::List(vec![
+        util::make_str_atom("get-info"),
+        util::make_str_atom(info.as_str()),
+    ]))
+}
+
+fn sexp_of_get_option(str: &String) -> Result<Sexp, PrintError> {
+    Ok(Sexp::List(vec![
+        util::make_str_atom("get-option"),
+        util::make_str_atom(str.as_str()),
+    ]))
+}
+
+fn sexp_of_get_value<T: Smtlib2Theory, B: Smtlib2Binder>(
+    es: &Vec<Expr<T, B>>,
+) -> Result<Sexp, PrintError> {
+    let es: Result<Vec<_>, _> = es.iter().map(|e| sexp_of_expr(e)).collect();
+    let es = es?;
+    Ok(Sexp::List(vec![
+        util::make_str_atom("get-value"),
+        Sexp::List(es),
+    ]))
+}
+
+fn sexp_of_pop(n: i64) -> Result<Sexp, PrintError> {
+    Ok(Sexp::List(vec![
+        util::make_str_atom("pop"),
+        util::make_int_atom(n),
+    ]))
+}
+
+fn sexp_of_push(n: i64) -> Result<Sexp, PrintError> {
+    Ok(Sexp::List(vec![
+        util::make_str_atom("push"),
+        util::make_int_atom(n),
+    ]))
+}
+
+fn sexp_of_set_info(attr: &Attribute) -> Result<Sexp, PrintError> {
+    let mut atoms = sexp_of_attribute(attr)?;
+    atoms.insert(0, util::make_str_atom("set-info"));
+    Ok(Sexp::List(atoms))
+}
+
+fn sexp_of_set_logic(sym: &String) -> Result<Sexp, PrintError> {
+    Ok(Sexp::List(vec![
+        util::make_str_atom("set-logic"),
+        util::make_str_atom(sym.as_str()),
+    ]))
+}
+
+fn sexp_of_attribute_value(attr_value: &AttributeValue) -> Result<Sexp, PrintError> {
+    use AttributeValue::*;
+    Ok(match attr_value {
+        SpecConstant(str) => util::make_str_atom(str.as_str()),
+        Symbol(sym) => util::make_str_atom(sym.as_str()),
+    })
+}
+
+fn sexp_of_attribute(attr: &Attribute) -> Result<Vec<Sexp>, PrintError> {
+    use Attribute::*;
+    Ok(match attr {
+        Keyword(str) => vec![util::make_str_atom(str.as_str())],
+        KeywordWithAttributeValue(str, attr_value) => vec![
+            util::make_str_atom(str.as_str()),
+            sexp_of_attribute_value(attr_value)?,
+        ],
+    })
+}
+
+fn sexp_of_set_option(opt: &Option) -> Result<Sexp, PrintError> {
+    use crate::format::smtlib2::Option::*;
+    let mut atoms = match opt {
+        DiagnosticOutputChannel(str) => vec![
+            util::make_str_atom(":diagnostic-output-channel"),
+            util::make_str_atom(str.as_str()),
+        ],
+        GlobalDeclarations(b) => vec![
+            util::make_str_atom(":global-declarations"),
+            util::make_bool_atom(*b),
+        ],
+        InteractiveMode(b) => vec![
+            util::make_str_atom(":interactive-mode"),
+            util::make_bool_atom(*b),
+        ],
+        PrintSuccess(b) => vec![
+            util::make_str_atom(":print-success"),
+            util::make_bool_atom(*b),
+        ],
+        ProduceAssertions(b) => vec![
+            util::make_str_atom(":produce-assertions"),
+            util::make_bool_atom(*b),
+        ],
+        ProduceAssignments(b) => vec![
+            util::make_str_atom(":produce-assignments"),
+            util::make_bool_atom(*b),
+        ],
+        ProduceModels(b) => vec![
+            util::make_str_atom(":produce-models"),
+            util::make_bool_atom(*b),
+        ],
+        ProduceProofs(b) => vec![
+            util::make_str_atom(":produce-proofs"),
+            util::make_bool_atom(*b),
+        ],
+        ProduceUnsatAssumptions(b) => vec![
+            util::make_str_atom(":produce-unsat-assumptions"),
+            util::make_bool_atom(*b),
+        ],
+        ProduceUnsatCores(b) => vec![
+            util::make_str_atom(":produce-unsat-cores"),
+            util::make_bool_atom(*b),
+        ],
+        RandomSeed(n) => vec![util::make_str_atom(":random-seed"), util::make_int_atom(*n)],
+        RegularOutputChannel(str) => vec![
+            util::make_str_atom(":regular-output-channel"),
+            util::make_str_atom(str.as_str()),
+        ],
+        ReproducibleResourceLimit(n) => vec![
+            util::make_str_atom(":reproducible-resource-limit"),
+            util::make_int_atom(*n),
+        ],
+        Verbosity(n) => vec![util::make_str_atom(":verbosity"), util::make_int_atom(*n)],
+        Attribute(attr) => sexp_of_attribute(attr)?,
+    };
+    atoms.insert(0, util::make_str_atom("set-option"));
+
+    Ok(Sexp::List(atoms))
+}
+
+fn sexp_of_string(str: &str) -> Result<Sexp, PrintError> {
+    Ok(Sexp::List(vec![util::make_str_atom(str)]))
 }
 
 pub fn toplevels<T, B>(smtlib2: &Smtlib2<T, B>) -> Result<Vec<Sexp>, PrintError>
@@ -320,7 +458,7 @@ where
         .iter()
         .map(|command| match command {
             Assert(expr) => sexp_of_assert(&expr),
-            CheckSat => sexp_of_check_sat(),
+            CheckSat => sexp_of_string("check-sat"),
             CheckSatAssuming(pos, neg) => sexp_of_check_sat_assuming(pos, neg),
             DeclareConst(sorted_symbol) => sexp_of_declare_const::<T>(sorted_symbol),
             DeclareDatatype(datatype) => sexp_of_declare_datatype::<T>(datatype),
@@ -335,7 +473,24 @@ where
             DefineSort(ident, param, sort) => sexp_of_define_sort::<T>(ident, param, sort),
 
             Echo(msg) => sexp_of_echo(msg),
-            Exit => sexp_of_exit(),
+            Exit => sexp_of_string("exit"),
+
+            GetAssertions => sexp_of_string("get-assertions"),
+            GetAssignment => sexp_of_string("get-assignment"),
+            GetInfo(info_flag) => sexp_of_get_info(info_flag),
+            GetModel => sexp_of_string("get-model"),
+            GetOption(str) => sexp_of_get_option(str),
+            GetProof => sexp_of_string("get-proof"),
+            GetUnsatAssumptions => sexp_of_string("get-unsat-assumptions"),
+            GetUnsatCore => sexp_of_string("get-unsat-core"),
+            GetValue(ts) => sexp_of_get_value(ts),
+            Pop(n) => sexp_of_pop(*n),
+            Push(n) => sexp_of_push(*n),
+            Reset => sexp_of_string("reset"),
+            ResetAssertions => sexp_of_string("reset-assertions"),
+            SetInfo(attr) => sexp_of_set_info(attr),
+            SetLogic(sym) => sexp_of_set_logic(sym),
+            SetOption(opt) => sexp_of_set_option(opt),
         })
         .collect();
     result
