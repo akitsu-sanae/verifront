@@ -3,29 +3,29 @@ use crate::logic::{binder::*, expr::*, theory::*};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
-struct Env<SS: IsSortSymbol> {
-    data: HashMap<Ident, Sort<SS>>,
+struct Env<T: Theory> {
+    data: HashMap<Ident, Sort<T>>,
 }
 
-impl<SS: IsSortSymbol> Env<SS> {
+impl<T: Theory> Env<T> {
     pub fn new() -> Self {
         Self {
             data: HashMap::new(),
         }
     }
-    pub fn push(&self, ident: Ident, sort: Sort<SS>) -> Self {
+    pub fn push(&self, ident: Ident, sort: Sort<T>) -> Env<T> {
         let mut ret = self.clone();
         ret.data.insert(ident, sort);
         ret
     }
-    pub fn append(&self, elems: Vec<(Ident, Sort<SS>)>) -> Self {
+    pub fn append(&self, elems: Vec<(Ident, Sort<T>)>) -> Env<T> {
         let mut ret = self.clone();
         for (ident, sort) in elems {
             ret.data.insert(ident, sort);
         }
         ret
     }
-    pub fn lookup(&self, ident: &Ident) -> Result<Sort<SS>, String> {
+    pub fn lookup(&self, ident: &Ident) -> Result<Sort<T>, String> {
         self.data
             .get(ident)
             .cloned()
@@ -33,10 +33,7 @@ impl<SS: IsSortSymbol> Env<SS> {
     }
 }
 
-fn unify<T: Theory>(
-    params: Vec<Sort<T::SortSymbol>>,
-    args: Vec<Sort<T::SortSymbol>>,
-) -> Result<Env<T::SortSymbol>, String> {
+fn unify<T: Theory>(params: Vec<Sort<T>>, args: Vec<Sort<T>>) -> Result<Env<T>, String> {
     if params.len() != args.len() {
         return Err(format!(
             "unmatch sorts between params and args: {:?} vs {:?}",
@@ -58,10 +55,7 @@ fn unify<T: Theory>(
     Ok(subst)
 }
 
-fn apply_subst<T: Theory>(
-    ret: Sort<T::SortSymbol>,
-    subst: Env<T::SortSymbol>,
-) -> Result<Sort<T::SortSymbol>, String> {
+fn apply_subst<T: Theory>(ret: Sort<T>, subst: Env<T>) -> Result<Sort<T>, String> {
     match ret {
         Sort::Symbol(sym) => Ok(Sort::Symbol(sym)),
         Sort::Var(ident) => subst.lookup(&ident),
@@ -70,8 +64,8 @@ fn apply_subst<T: Theory>(
 
 fn expr_with_env<T: Theory, B: IsBinder>(
     expr: &Expr<T, B>,
-    env: &Env<T::SortSymbol>,
-) -> Result<Sort<T::SortSymbol>, String> {
+    env: &Env<T>,
+) -> Result<Sort<T>, String> {
     match expr {
         Expr::Binding(_binder, params, expr) => {
             let env = env.append(params.clone());
@@ -90,17 +84,15 @@ fn expr_with_env<T: Theory, B: IsBinder>(
                     Ok(ret)
                 }
                 Function::Var(ident) => env.lookup(ident),
-                _ => unreachable!(),
             }
         }
         Expr::Const(c) => match c {
             Const::Symbol(cs) => Ok(cs.sort()),
             Const::Var(ident) => env.lookup(ident),
-            _ => unreachable!(),
         },
     }
 }
 
-pub fn expr<T: Theory, B: IsBinder>(expr: &Expr<T, B>) -> Result<Sort<T::SortSymbol>, String> {
+pub fn expr<T: Theory, B: IsBinder>(expr: &Expr<T, B>) -> Result<Sort<T>, String> {
     expr_with_env(expr, &Env::new())
 }

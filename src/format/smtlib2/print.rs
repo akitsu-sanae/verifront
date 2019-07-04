@@ -30,26 +30,21 @@ impl PrintError {
     }
 }
 
-fn sexp_of_sort<T: Smtlib2Theory>(sort: &Sort<T::SortSymbol>) -> Result<Sexp, PrintError> {
+fn sexp_of_sort<T: Smtlib2Theory>(sort: &Sort<T>) -> Result<Sexp, PrintError> {
     match sort {
         Sort::Var(ident) => Ok(Sexp::Atom(sexp::Atom::S(ident.clone()))),
         Sort::Symbol(sym) => T::sexp_of_sort_symbol(sym),
     }
 }
 
-fn sexp_of_function<T: Smtlib2Theory>(
-    fun: &Function<T::SortSymbol, T::FunctionSymbol>,
-) -> Result<Sexp, PrintError> {
+fn sexp_of_function<T: Smtlib2Theory>(fun: &Function<T>) -> Result<Sexp, PrintError> {
     match fun {
         Function::Var(ident) => Ok(Sexp::Atom(sexp::Atom::S(ident.clone()))),
         Function::Symbol(sym) => T::sexp_of_function_symbol(sym),
-        Function::_Phantom(_) => unreachable!(),
     }
 }
 
-fn sexp_of_params<T: Smtlib2Theory>(
-    params: &Vec<SortedSymbol<T::SortSymbol>>,
-) -> Result<Sexp, PrintError> {
+fn sexp_of_params<T: Smtlib2Theory>(params: &Vec<SortedSymbol<T>>) -> Result<Sexp, PrintError> {
     let params: Result<Vec<_>, _> = params
         .iter()
         .map(|(ident, sort)| {
@@ -86,7 +81,6 @@ where
             Ok(match c {
                 Symbol(cs) => T::sexp_of_const_symbol(cs)?,
                 Var(ident) => util::make_str_atom(ident),
-                _Phantom(_) => unreachable!(),
             })
         }
     }
@@ -163,7 +157,7 @@ fn sexp_of_funsdef_rec<T: Smtlib2Theory, B: Smtlib2Binder>(
 fn sexp_of_define_sort<T: Smtlib2Theory>(
     ident: &String,
     params: &Vec<Ident>,
-    sort: &Sort<T::SortSymbol>,
+    sort: &Sort<T>,
 ) -> Result<Sexp, PrintError> {
     Ok(Sexp::List(vec![
         util::make_str_atom("define-sort"),
@@ -188,7 +182,7 @@ fn sexp_of_assert<T: Smtlib2Theory, B: Smtlib2Binder>(
 }
 
 fn sexp_of_declare_const<T: Smtlib2Theory>(
-    (ref ident, ref sort): &SortedSymbol<T::SortSymbol>,
+    (ref ident, ref sort): &SortedSymbol<T>,
 ) -> Result<Sexp, PrintError> {
     Ok(Sexp::List(vec![
         util::make_str_atom("declare-const"),
@@ -198,7 +192,7 @@ fn sexp_of_declare_const<T: Smtlib2Theory>(
 }
 
 fn sexp_of_selector_dec<T: Smtlib2Theory>(
-    selector_dec: &SelectorDec<T::SortSymbol>,
+    selector_dec: &SelectorDec<T>,
 ) -> Result<Sexp, PrintError> {
     Ok(Sexp::List(vec![
         util::make_str_atom(&selector_dec.name),
@@ -207,7 +201,7 @@ fn sexp_of_selector_dec<T: Smtlib2Theory>(
 }
 
 fn sexp_of_constructor_dec<T: Smtlib2Theory>(
-    constructor_dec: &ConstructorDec<T::SortSymbol>,
+    constructor_dec: &ConstructorDec<T>,
 ) -> Result<Sexp, PrintError> {
     let mut result = vec![util::make_str_atom(constructor_dec.name.as_str())];
     for selector_dec in constructor_dec.selector_decs.iter() {
@@ -217,7 +211,7 @@ fn sexp_of_constructor_dec<T: Smtlib2Theory>(
 }
 
 fn sexp_of_datatype_dec<T: Smtlib2Theory>(
-    datatype_dec: &DatatypeDec<T::SortSymbol>,
+    datatype_dec: &DatatypeDec<T>,
 ) -> Result<Sexp, PrintError> {
     let ctors: Result<Vec<Sexp>, _> = datatype_dec
         .constructor_decs
@@ -241,7 +235,7 @@ fn sexp_of_datatype_dec<T: Smtlib2Theory>(
 }
 
 fn sexp_of_declare_datatype<T: Smtlib2Theory>(
-    datatype_dec: &DatatypeDec<T::SortSymbol>,
+    datatype_dec: &DatatypeDec<T>,
 ) -> Result<Sexp, PrintError> {
     Ok(Sexp::List(vec![
         util::make_str_atom("declare-datatype"),
@@ -252,7 +246,7 @@ fn sexp_of_declare_datatype<T: Smtlib2Theory>(
 
 fn sexp_of_declare_datatypes<T: Smtlib2Theory>(
     sort_decs: &Vec<Ident>,
-    datatype_decs: &Vec<DatatypeDec<T::SortSymbol>>,
+    datatype_decs: &Vec<DatatypeDec<T>>,
 ) -> Result<Sexp, PrintError> {
     let mut sorts_sexp = vec![];
     let mut datatypes_sexp = vec![];

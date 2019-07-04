@@ -25,36 +25,36 @@ pub trait Smtlib2Binder: IsBinder + Sized {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SelectorDec<SS: IsSortSymbol> {
+pub struct SelectorDec<T: Smtlib2Theory> {
     pub name: Ident,
-    pub sort: Sort<SS>,
+    pub sort: Sort<T>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ConstructorDec<SS: IsSortSymbol> {
+pub struct ConstructorDec<T: Smtlib2Theory> {
     pub name: Ident,
-    pub selector_decs: Vec<SelectorDec<SS>>,
+    pub selector_decs: Vec<SelectorDec<T>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DatatypeDec<SS: IsSortSymbol> {
+pub struct DatatypeDec<T: Smtlib2Theory> {
     pub name: Ident,
     pub params: Vec<Ident>,
-    pub constructor_decs: Vec<ConstructorDec<SS>>,
+    pub constructor_decs: Vec<ConstructorDec<T>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunDec<T: Smtlib2Theory> {
     pub name: Ident,
-    pub params: Vec<Sort<T::SortSymbol>>,
-    pub ret: Sort<T::SortSymbol>,
+    pub params: Vec<Sort<T>>,
+    pub ret: Sort<T>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunDef<T: Smtlib2Theory, B: Smtlib2Binder> {
     pub name: Ident,
-    pub params: Vec<SortedSymbol<T::SortSymbol>>,
-    pub ret: Sort<T::SortSymbol>,
+    pub params: Vec<SortedSymbol<T>>,
+    pub ret: Sort<T>,
     pub body: Expr<T, B>,
 }
 
@@ -108,15 +108,15 @@ pub enum Command<T: Smtlib2Theory, B: Smtlib2Binder> {
     Assert(Expr<T, B>),
     CheckSat,
     CheckSatAssuming(Vec<Ident>, Vec<Ident>), // positives and negativs
-    DeclareConst(SortedSymbol<T::SortSymbol>),
-    DeclareDatatype(DatatypeDec<T::SortSymbol>),
-    DeclareDatatypes(Vec<Ident>, Vec<DatatypeDec<T::SortSymbol>>),
+    DeclareConst(SortedSymbol<T>),
+    DeclareDatatype(DatatypeDec<T>),
+    DeclareDatatypes(Vec<Ident>, Vec<DatatypeDec<T>>),
     DeclareFun(FunDec<T>),
     DeclareSort(Ident, i64),
     DefineFun(FunDef<T, B>),
     DefineFunRec(FunDef<T, B>),
     DefineFunsRec(Vec<FunDef<T, B>>),
-    DefineSort(Ident, Vec<Ident>, Sort<T::SortSymbol>),
+    DefineSort(Ident, Vec<Ident>, Sort<T>),
     Echo(String),
     Exit,
     GetAssertions,

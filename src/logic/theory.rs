@@ -2,49 +2,42 @@ pub mod boolean;
 pub mod integer;
 
 use std::fmt::Debug;
-use std::marker::PhantomData;
 
 use crate::ident::Ident;
 
-pub trait IsSortSymbol: From<boolean::SortSymbol> + PartialEq + Eq + Debug + Clone {}
+pub trait IsSortSymbol: From<boolean::SortSymbol> + Eq + Debug + Clone {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Sort<S: IsSortSymbol> {
-    Symbol(S),
+pub enum Sort<T: Theory> {
+    Symbol(T::SortSymbol),
     Var(Ident),
 }
 
-pub trait IsFunctionSymbol<S: IsSortSymbol>:
-    From<boolean::FunctionSymbol> + PartialEq + Eq + Debug + Clone
-{
-    fn arg_sorts(&self) -> Vec<Sort<S>>;
-    fn ret_sort(&self) -> Sort<S>;
+pub trait IsFunctionSymbol<T: Theory>: From<boolean::FunctionSymbol> + Eq + Debug + Clone {
+    fn arg_sorts(&self) -> Vec<Sort<T>>;
+    fn ret_sort(&self) -> Sort<T>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Function<S: IsSortSymbol, F: IsFunctionSymbol<S>> {
-    Symbol(F),
+pub enum Function<T: Theory> {
+    Symbol(T::FunctionSymbol),
     Var(Ident),
-    _Phantom(PhantomData<Fn() -> S>),
 }
 
-pub trait IsConstSymbol<S: IsSortSymbol>:
-    From<boolean::ConstSymbol> + PartialEq + Eq + Debug + Clone
-{
-    fn sort(&self) -> Sort<S>;
+pub trait IsConstSymbol<T: Theory>: From<boolean::ConstSymbol> + Eq + Debug + Clone {
+    fn sort(&self) -> Sort<T>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Const<S: IsSortSymbol, C: IsConstSymbol<S>> {
-    Symbol(C),
+pub enum Const<T: Theory> {
+    Symbol(T::ConstSymbol),
     Var(Ident), // term variable
-    _Phantom(PhantomData<Fn() -> S>),
 }
 
-pub type SortedSymbol<SS> = (Ident, Sort<SS>);
+pub type SortedSymbol<T> = (Ident, Sort<T>);
 
-pub trait Theory: Debug + PartialEq + Eq {
+pub trait Theory: Eq + Debug + Clone + Sized {
     type SortSymbol: IsSortSymbol;
-    type FunctionSymbol: IsFunctionSymbol<Self::SortSymbol>;
-    type ConstSymbol: IsConstSymbol<Self::SortSymbol>;
+    type FunctionSymbol: IsFunctionSymbol<Self>;
+    type ConstSymbol: IsConstSymbol<Self>;
 }

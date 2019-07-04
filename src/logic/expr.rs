@@ -3,9 +3,9 @@ use crate::logic::{binder::*, theory::*};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expr<T: Theory, B: IsBinder> {
-    Binding(B, Vec<(Ident, Sort<T::SortSymbol>)>, Box<Expr<T, B>>),
-    Apply(Function<T::SortSymbol, T::FunctionSymbol>, Vec<Expr<T, B>>),
-    Const(Const<T::SortSymbol, T::ConstSymbol>),
+    Binding(B, Vec<(Ident, Sort<T>)>, Box<Expr<T, B>>),
+    Apply(Function<T>, Vec<Expr<T, B>>),
+    Const(Const<T>),
 }
 
 impl<T: Theory, B: IsBinder> Expr<T, B> {

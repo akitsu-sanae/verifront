@@ -56,11 +56,11 @@ fn int_literal(n: i64) -> FOL {
     FOL::Const(Const::Symbol(integer::ConstSymbol::Number(n)))
 }
 
-fn int_sort() -> Sort<integer::SortSymbol> {
+fn int_sort() -> Sort<integer::Integer> {
     Sort::Symbol(integer::SortSymbol::Int)
 }
 
-fn bool_sort() -> Sort<integer::SortSymbol> {
+fn bool_sort() -> Sort<integer::Integer> {
     Sort::Symbol(integer::SortSymbol::Bool)
 }
 

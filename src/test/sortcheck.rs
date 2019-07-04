@@ -8,15 +8,14 @@ fn make_var<T: Theory, B: IsBinder>(name: &str) -> Expr<T, B> {
     Expr::Const(Const::Var(ident::make(name)))
 }
 
-fn check(expr: FOL, sort: Sort<integer::SortSymbol>) {
+fn check(expr: FOL, sort: Sort<integer::Integer>) {
     assert_eq!(sortcheck::expr(&expr).unwrap(), sort)
 }
 
 #[test]
 fn literal() {
-    use crate::logic::theory::boolean::{ConstSymbol::*, FunctionSymbol::*};
-    use crate::logic::theory::integer::{FunctionSymbol::*, *};
-
+    use crate::logic::theory::boolean::ConstSymbol::*;
+    use crate::logic::theory::integer::*;
     check(
         // True
         FOL::Const(Const::Symbol(ConstSymbol::Boolean(True))),

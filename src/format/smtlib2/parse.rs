@@ -4,7 +4,6 @@ use std::fmt;
 
 use super::*;
 use crate::ident::{self, Ident};
-use crate::logic::theory::*;
 
 #[derive(Debug, Clone)]
 pub struct ParseError {
@@ -31,7 +30,7 @@ impl ParseError {
 
 fn params_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(
     sexp: &Sexp,
-) -> Result<Vec<(Ident, Sort<T::SortSymbol>)>, ParseError> {
+) -> Result<Vec<(Ident, Sort<T>)>, ParseError> {
     if let Sexp::List(params) = sexp {
         let params: Result<Vec<_>, _> = params
             .iter()
@@ -64,7 +63,7 @@ fn params_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(
     }
 }
 
-fn sort_of_sexp<T: Smtlib2Theory>(sexp: &Sexp) -> Result<Sort<T::SortSymbol>, ParseError> {
+fn sort_of_sexp<T: Smtlib2Theory>(sexp: &Sexp) -> Result<Sort<T>, ParseError> {
     T::sort_symbol_of_sexp(sexp)
         .map(|fs| Sort::Symbol(fs))
         .or_else(|_| {
@@ -78,7 +77,7 @@ fn sort_of_sexp<T: Smtlib2Theory>(sexp: &Sexp) -> Result<Sort<T::SortSymbol>, Pa
 
 fn function_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(
     sexp: &Sexp,
-) -> Result<Function<T::SortSymbol, T::FunctionSymbol>, ParseError> {
+) -> Result<Function<T>, ParseError> {
     T::function_symbol_of_sexp(sexp)
         .map(|fs| Function::Symbol(fs))
         .or_else(|_| {
@@ -93,9 +92,7 @@ fn function_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(
         })
 }
 
-fn const_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(
-    sexp: &Sexp,
-) -> Result<Const<T::SortSymbol, T::ConstSymbol>, ParseError> {
+fn const_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(sexp: &Sexp) -> Result<Const<T>, ParseError> {
     T::const_symbol_of_sexp(sexp)
         .map(|fs| Const::Symbol(fs))
         .or_else(|_| {
@@ -145,9 +142,7 @@ fn check_sat_assuming_of_sexp(sexp: &Sexp) -> Result<(Vec<Ident>, Vec<Ident>), P
     }
 }
 
-fn selector_dec_of_sexp<T: Smtlib2Theory>(
-    sexp: &Sexp,
-) -> Result<SelectorDec<T::SortSymbol>, ParseError> {
+fn selector_dec_of_sexp<T: Smtlib2Theory>(sexp: &Sexp) -> Result<SelectorDec<T>, ParseError> {
     let err = ParseError::new(format!("invalid sexp as selector_dec : {}", sexp));
     if let Sexp::List(sexps) = sexp {
         match sexps.as_slice() {
@@ -165,9 +160,7 @@ fn selector_dec_of_sexp<T: Smtlib2Theory>(
     }
 }
 
-fn constructor_dec_of_sexp<T: Smtlib2Theory>(
-    sexp: &Sexp,
-) -> Result<ConstructorDec<T::SortSymbol>, ParseError> {
+fn constructor_dec_of_sexp<T: Smtlib2Theory>(sexp: &Sexp) -> Result<ConstructorDec<T>, ParseError> {
     let err = ParseError::new(format!("invalid sexp as constructor_dec : {}", sexp));
     if let Sexp::List(sexps) = sexp {
         let mut sexp_iter = sexps.iter();
@@ -194,7 +187,7 @@ fn constructor_dec_of_sexp<T: Smtlib2Theory>(
 fn datatype_dec_of_sexp<T: Smtlib2Theory>(
     name: &str,
     sexp: &Sexp,
-) -> Result<DatatypeDec<T::SortSymbol>, ParseError> {
+) -> Result<DatatypeDec<T>, ParseError> {
     // TODO: handle parameterized datatype declarion
     if let Sexp::List(sexps) = sexp {
         let mut constructor_decs = vec![];
@@ -214,9 +207,7 @@ fn datatype_dec_of_sexp<T: Smtlib2Theory>(
     }
 }
 
-fn datatype_decs_of_sexp<T: Smtlib2Theory>(
-    sexp: &Sexp,
-) -> Result<Vec<DatatypeDec<T::SortSymbol>>, ParseError> {
+fn datatype_decs_of_sexp<T: Smtlib2Theory>(sexp: &Sexp) -> Result<Vec<DatatypeDec<T>>, ParseError> {
     let err = ParseError::new(format!("invalid sexp as declare-datatype : {}", sexp));
     if let Sexp::List(sexps) = sexp {
         let mut datatype_decs = vec![];

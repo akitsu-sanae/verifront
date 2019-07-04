@@ -20,8 +20,8 @@ pub enum FunctionSymbol {
     IfThenElse,
 }
 
-impl IsFunctionSymbol<SortSymbol> for FunctionSymbol {
-    fn arg_sorts(&self) -> Vec<Sort<SortSymbol>> {
+impl IsFunctionSymbol<Boolean> for FunctionSymbol {
+    fn arg_sorts(&self) -> Vec<Sort<Boolean>> {
         use FunctionSymbol::*;
         use SortSymbol::*;
         match self {
@@ -31,7 +31,7 @@ impl IsFunctionSymbol<SortSymbol> for FunctionSymbol {
         }
     }
 
-    fn ret_sort(&self) -> Sort<SortSymbol> {
+    fn ret_sort(&self) -> Sort<Boolean> {
         use FunctionSymbol::*;
         use SortSymbol::*;
         match self {
@@ -47,8 +47,8 @@ pub enum ConstSymbol {
     False,
 }
 
-impl IsConstSymbol<SortSymbol> for ConstSymbol {
-    fn sort(&self) -> Sort<SortSymbol> {
+impl IsConstSymbol<Boolean> for ConstSymbol {
+    fn sort(&self) -> Sort<Boolean> {
         use ConstSymbol::*;
         use SortSymbol::*;
         match self {

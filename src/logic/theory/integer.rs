@@ -9,8 +9,8 @@ pub enum SortSymbol {
 }
 
 use std::convert::From;
-impl From<Sort<boolean::SortSymbol>> for Sort<SortSymbol> {
-    fn from(s: Sort<boolean::SortSymbol>) -> Sort<SortSymbol> {
+impl From<Sort<boolean::Boolean>> for Sort<Integer> {
+    fn from(s: Sort<boolean::Boolean>) -> Sort<Integer> {
         match s {
             Sort::Symbol(ss) => Sort::Symbol(SortSymbol::from(ss)),
             Sort::Var(ident) => Sort::Var(ident),
@@ -45,8 +45,8 @@ impl From<boolean::FunctionSymbol> for FunctionSymbol {
     }
 }
 
-impl IsFunctionSymbol<SortSymbol> for FunctionSymbol {
-    fn arg_sorts(&self) -> Vec<Sort<SortSymbol>> {
+impl IsFunctionSymbol<Integer> for FunctionSymbol {
+    fn arg_sorts(&self) -> Vec<Sort<Integer>> {
         use FunctionSymbol::*;
         use SortSymbol::*;
         match self {
@@ -54,7 +54,7 @@ impl IsFunctionSymbol<SortSymbol> for FunctionSymbol {
                 let sorts = boolean::FunctionSymbol::arg_sorts(bool_ss);
                 sorts
                     .into_iter()
-                    .map(|sort| Sort::<SortSymbol>::from(sort))
+                    .map(|sort| Sort::<Integer>::from(sort))
                     .collect()
             }
             Add | Sub | Mult | Div | Lt | Gt | Leq | Geq => {
@@ -63,7 +63,7 @@ impl IsFunctionSymbol<SortSymbol> for FunctionSymbol {
         }
     }
 
-    fn ret_sort(&self) -> Sort<SortSymbol> {
+    fn ret_sort(&self) -> Sort<Integer> {
         use FunctionSymbol::*;
         use SortSymbol::*;
         match self {
@@ -89,8 +89,8 @@ impl From<boolean::ConstSymbol> for ConstSymbol {
     }
 }
 
-impl IsConstSymbol<SortSymbol> for ConstSymbol {
-    fn sort(&self) -> Sort<SortSymbol> {
+impl IsConstSymbol<Integer> for ConstSymbol {
+    fn sort(&self) -> Sort<Integer> {
         use ConstSymbol::*;
         use SortSymbol::*;
         match self {
