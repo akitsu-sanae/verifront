@@ -154,13 +154,10 @@ impl Smtlib2Theory for Integer {
             match str.as_str() {
                 "Bool" => Ok(Bool),
                 "Int" => Ok(Int),
-                s => Err(ParseError::new(format!("unknown sort symbol : {}", s))),
+                s => Err(ParseError::UnknownSortSymbol(s.to_string())),
             }
         } else {
-            Err(ParseError::new(format!(
-                "invalid sexp as sort symbol : {}",
-                expr
-            )))
+            Err(ParseError::InvalidSexp("sort symbol", expr.clone()))
         }
     }
 
@@ -176,13 +173,10 @@ impl Smtlib2Theory for Integer {
                 ">" => Ok(Gt),
                 "<=" => Ok(Leq),
                 ">=" => Ok(Geq),
-                s => Err(ParseError::new(format!("unknown function symbol : {}", s))),
+                s => Err(ParseError::UnknownFunctionSymbol(s.to_string())),
             }
         } else {
-            Err(ParseError::new(format!(
-                "invalid sexp as function symbol : {}",
-                expr
-            )))
+            Err(ParseError::InvalidSexp("function symbol", expr.clone()))
         };
         int_fun.or_else(|_| match boolean::Boolean::function_symbol_of_sexp(expr) {
             Ok(bf) => Ok(FunctionSymbol::from(bf)),

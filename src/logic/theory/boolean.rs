@@ -98,13 +98,10 @@ impl Smtlib2Theory for Boolean {
         if let Sexp::Atom(Atom::S(str)) = expr {
             match str.as_str() {
                 "Bool" => Ok(SortSymbol::Bool),
-                s => Err(ParseError::new(format!("unknown sort symbol : {}", s))),
+                s => Err(ParseError::UnknownSortSymbol(s.to_string())),
             }
         } else {
-            Err(ParseError::new(format!(
-                "invalid sexp as sort symbol : {}",
-                expr
-            )))
+            Err(ParseError::InvalidSexp("sort symbol", expr.clone()))
         }
     }
 
@@ -118,13 +115,10 @@ impl Smtlib2Theory for Boolean {
                 "=>" => Ok(Imply),
                 "=" => Ok(Equal),
                 "ite" => Ok(IfThenElse),
-                str => Err(ParseError::new(format!("unknown function symbol: {}", str))),
+                str => Err(ParseError::UnknownFunctionSymbol(str.to_string())),
             }
         } else {
-            Err(ParseError::new(format!(
-                "invalid sexp as function symbol : {}",
-                expr
-            )))
+            Err(ParseError::InvalidSexp("function symbol", expr.clone()))
         }
     }
 
@@ -134,7 +128,7 @@ impl Smtlib2Theory for Boolean {
         } else if expr == &util::make_str_atom("false") {
             Ok(ConstSymbol::False)
         } else {
-            Err(ParseError::new(format!("unknown const: {}", expr)))
+            Err(ParseError::InvalidSexp("const symbol", expr.clone()))
         }
     }
 }

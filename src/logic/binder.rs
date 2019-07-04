@@ -41,13 +41,10 @@ impl Smtlib2Binder for Quantifier {
             match str.as_str() {
                 "forall" => Ok(Quantifier::Forall),
                 "exists" => Ok(Quantifier::Exists),
-                str => Err(ParseError::new(format!("unknown binder : {}", str))),
+                str => Err(ParseError::UnknownBinder(str.to_string())),
             }
         } else {
-            Err(ParseError::new(format!(
-                "invalid sexp as binder : {}",
-                expr
-            )))
+            Err(ParseError::InvalidSexp("binder", expr.clone()))
         }
     }
 }

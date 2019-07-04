@@ -4,27 +4,33 @@ use std::fmt;
 
 use super::*;
 use crate::ident::{self, Ident};
+use crate::util;
 
 #[derive(Debug, Clone)]
-pub struct ParseError {
-    msg: String, // FIXME
+pub enum ParseError {
+    InvalidSexp(&'static str, Sexp),
+    UnknownSortSymbol(String),
+    UnknownFunctionSymbol(String),
+    UnknownBinder(String),
 }
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "parser error: {}", self.msg)
+        use ParseError::*;
+        match self {
+            InvalidSexp(kind, sexp) => {
+                write!(f, "parse error: invalid sexp as {} : {}", kind, sexp)
+            }
+            UnknownSortSymbol(sym) => write!(f, "parse error: unknown sort symbol {}", sym),
+            UnknownFunctionSymbol(sym) => write!(f, "parse error: unknown function symbol {}", sym),
+            UnknownBinder(sym) => write!(f, "parse error: unknown binder {}", sym),
+        }
     }
 }
 
 impl Error for ParseError {
     fn description(&self) -> &str {
         "parse error"
-    }
-}
-
-impl ParseError {
-    pub fn new(msg: String) -> Self {
-        Self { msg: msg }
     }
 }
 
@@ -41,25 +47,16 @@ fn params_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(
                             let sort = sort_of_sexp::<T>(sort)?;
                             Ok((ident.clone(), sort))
                         }
-                        param => Err(ParseError::new(format!(
-                            "invalid sexp as param : {:?}",
-                            param
-                        ))),
+                        param => Err(ParseError::InvalidSexp("param", Sexp::List(param.to_vec()))),
                     }
                 } else {
-                    Err(ParseError::new(format!(
-                        "invalid sexp as param : {}",
-                        param
-                    )))
+                    Err(ParseError::InvalidSexp("param", param.clone()))
                 }
             })
             .collect();
         params
     } else {
-        Err(ParseError::new(format!(
-            "invalid sexp as params : {}",
-            sexp
-        )))
+        Err(ParseError::InvalidSexp("params", sexp.clone()))
     }
 }
 
@@ -70,7 +67,7 @@ fn sort_of_sexp<T: Smtlib2Theory>(sexp: &Sexp) -> Result<Sort<T>, ParseError> {
             if let Sexp::Atom(Atom::S(var)) = sexp {
                 Ok(Sort::Var(ident::make(&var)))
             } else {
-                Err(ParseError::new(format!("invalid sexp as sort : {}", sexp)))
+                Err(ParseError::InvalidSexp("sort", sexp.clone()))
             }
         })
 }
@@ -84,10 +81,7 @@ fn function_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(
             if let Sexp::Atom(Atom::S(var)) = sexp {
                 Ok(Function::Var(ident::make(&var)))
             } else {
-                Err(ParseError::new(format!(
-                    "invalid sexp as function : {}",
-                    sexp
-                )))
+                Err(ParseError::InvalidSexp("function", sexp.clone()))
             }
         })
 }
@@ -99,7 +93,7 @@ fn const_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(sexp: &Sexp) -> Result<Cons
             if let Sexp::Atom(Atom::S(var)) = sexp {
                 Ok(Const::Var(ident::make(&var)))
             } else {
-                Err(ParseError::new(format!("invalid sexp as const : {}", sexp)))
+                Err(ParseError::InvalidSexp("const", sexp.clone()))
             }
         })
 }
@@ -120,30 +114,24 @@ fn check_sat_assuming_of_sexp(sexp: &Sexp) -> Result<(Vec<Ident>, Vec<Ident>), P
                         negs.push(ident::make(ident.as_str()));
                     }
                     sexps => {
-                        return Err(ParseError::new(format!(
-                            "invalid sexp as literal: {}",
-                            Sexp::List(sexps.to_vec())
-                        )))
+                        return Err(ParseError::InvalidSexp(
+                            "literal",
+                            Sexp::List(sexps.to_vec()),
+                        ))
                     }
                 }
             } else {
-                return Err(ParseError::new(format!(
-                    "invalid sexp as literal: {}",
-                    literal
-                )));
+                return Err(ParseError::InvalidSexp("literal", literal.clone()));
             }
         }
         Ok((poss, negs))
     } else {
-        Err(ParseError::new(format!(
-            "invalid sexp as check-sat-assuming : {}",
-            sexp
-        )))
+        Err(ParseError::InvalidSexp("check-sat-assuming", sexp.clone()))
     }
 }
 
 fn selector_dec_of_sexp<T: Smtlib2Theory>(sexp: &Sexp) -> Result<SelectorDec<T>, ParseError> {
-    let err = ParseError::new(format!("invalid sexp as selector_dec : {}", sexp));
+    let err = ParseError::InvalidSexp("selector_dec", sexp.clone());
     if let Sexp::List(sexps) = sexp {
         match sexps.as_slice() {
             [Sexp::Atom(Atom::S(name)), sort] => {
@@ -161,7 +149,7 @@ fn selector_dec_of_sexp<T: Smtlib2Theory>(sexp: &Sexp) -> Result<SelectorDec<T>,
 }
 
 fn constructor_dec_of_sexp<T: Smtlib2Theory>(sexp: &Sexp) -> Result<ConstructorDec<T>, ParseError> {
-    let err = ParseError::new(format!("invalid sexp as constructor_dec : {}", sexp));
+    let err = ParseError::InvalidSexp("constructor_dec", sexp.clone());
     if let Sexp::List(sexps) = sexp {
         let mut sexp_iter = sexps.iter();
         let name = sexp_iter
@@ -200,15 +188,12 @@ fn datatype_dec_of_sexp<T: Smtlib2Theory>(
             constructor_decs: constructor_decs,
         })
     } else {
-        Err(ParseError::new(format!(
-            "invalid sexp as declare-datatype : {}",
-            sexp
-        )))
+        Err(ParseError::InvalidSexp("declare-datatype", sexp.clone()))
     }
 }
 
 fn datatype_decs_of_sexp<T: Smtlib2Theory>(sexp: &Sexp) -> Result<Vec<DatatypeDec<T>>, ParseError> {
-    let err = ParseError::new(format!("invalid sexp as declare-datatype : {}", sexp));
+    let err = ParseError::InvalidSexp("declare-datatype", sexp.clone());
     if let Sexp::List(sexps) = sexp {
         let mut datatype_decs = vec![];
         for sexp in sexps.iter() {
@@ -237,10 +222,13 @@ fn fun_defs_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(
     fun_decs: &Vec<Sexp>,
     terms: &Vec<Sexp>,
 ) -> Result<Vec<FunDef<T, B>>, ParseError> {
-    let err = ParseError::new(format!(
-        "invalid sexp as declare-datatype : {:?}, {:?}",
-        fun_decs, terms
-    ));
+    let err = ParseError::InvalidSexp(
+        "declare-datatype",
+        Sexp::List(vec![
+            Sexp::List(fun_decs.clone()),
+            Sexp::List(terms.clone()),
+        ]),
+    );
     let mut fun_defs = vec![];
     for (i, fun_dec) in fun_decs.iter().enumerate() {
         let term = &terms[i]; // TODO: more safety
@@ -278,10 +266,7 @@ fn expr_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(sexp: &Sexp) -> Result<Expr<
                             let expr = expr_of_sexp(expr)?;
                             Ok(Expr::Binding(binder, params, box expr))
                         }
-                        _ => Err(ParseError::new(format!(
-                            "invalid sexp as binding : {}",
-                            sexp
-                        ))),
+                        _ => Err(ParseError::InvalidSexp("binding", sexp.clone())),
                     }
                 } else if let Ok(fun) = function_of_sexp::<T, B>(head) {
                     let args: Result<_, _> = tail.iter().map(|arg| expr_of_sexp(arg)).collect();
@@ -298,18 +283,12 @@ fn expr_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(sexp: &Sexp) -> Result<Expr<
                     Ok(Expr::Const(const_of_sexp::<T, B>(sexp)?))
                 }
             }
-            _ => Err(ParseError::new(format!(
-                "invalid sexp as expr : {}",
-                Sexp::List(sexps.to_vec())
-            ))),
+            _ => Err(ParseError::InvalidSexp("expr", Sexp::List(sexps.to_vec()))),
         },
         Sexp::Atom(atom) => Ok(Expr::Const(
             const_of_sexp::<T, B>(&Sexp::Atom(atom.clone())).or_else(|_| match atom {
                 Atom::S(name) => Ok(Const::Var(ident::make(name))),
-                _ => Err(ParseError::new(format!(
-                    "invalid sexp as expr : {}",
-                    Sexp::Atom(atom.clone())
-                ))),
+                _ => Err(ParseError::InvalidSexp("expr", Sexp::Atom(atom.clone()))),
             })?,
         )),
     }
@@ -334,12 +313,7 @@ fn attr_value_of_sexp(sexp: &Sexp) -> Result<AttributeValue, ParseError> {
     Ok(match sexp {
         // FIXME
         Sexp::Atom(Atom::S(str)) => Symbol(str.clone()),
-        sexp => {
-            return Err(ParseError::new(format!(
-                "invalid sexp as attribute value : {:?}",
-                sexp
-            )))
-        }
+        sexp => return Err(ParseError::InvalidSexp("attribute-value", sexp.clone())),
     })
 }
 
@@ -351,10 +325,10 @@ fn attr_of_sexp(sexp: &[Sexp]) -> Result<Attribute, ParseError> {
             KeywordWithAttributeValue(str.clone(), attr_value_of_sexp(attr_value)?)
         }
         sexp => {
-            return Err(ParseError::new(format!(
-                "invalid sexp as attribute : {:?}",
-                sexp
-            )))
+            return Err(ParseError::InvalidSexp(
+                "attribute",
+                Sexp::List(sexp.to_vec()),
+            ))
         }
     })
 }
@@ -363,7 +337,7 @@ fn sexp_to_bool(str: &String) -> Result<bool, ParseError> {
     Ok(match str.as_str() {
         "true" => true,
         "false" => false,
-        e => return Err(ParseError::new(format!("invalid sexp as bool : {:?}", e))),
+        e => return Err(ParseError::InvalidSexp("bool", util::make_str_atom(e))),
     })
 }
 
@@ -479,7 +453,7 @@ where
                         .iter()
                         .map(|sort_dec| match sort_dec {
                             Sexp::Atom(Atom::S(ident)) => Ok(ident.clone()),
-                            sexp => Err(ParseError::new(format!("invalid sort dec : {}", sexp))),
+                            sexp => Err(ParseError::InvalidSexp("sort dec", sexp.clone())),
                         })
                         .collect();
                     let sort_decs = sort_decs?;
@@ -545,10 +519,7 @@ where
                             if let Sexp::Atom(Atom::S(ident)) = param {
                                 Ok(ident.clone())
                             } else {
-                                Err(ParseError::new(format!(
-                                    "ident expected, but {} come",
-                                    param
-                                )))
+                                Err(ParseError::InvalidSexp("ident", param.clone()))
                             }
                         })
                         .collect();
@@ -613,11 +584,14 @@ where
                     Command::SetOption(option_of_sexp(opt)?)
                 }
                 toplevel => {
-                    return Err(ParseError::new(format!("invalid toplevel {:?}", toplevel)))
+                    return Err(ParseError::InvalidSexp(
+                        "toplevel",
+                        Sexp::List(toplevel.to_vec()),
+                    ))
                 }
             }
         } else {
-            return Err(ParseError::new(format!("invalid toplevel {:?}", toplevel)));
+            return Err(ParseError::InvalidSexp("toplevel", toplevel.clone()));
         };
         commands.push(cmd);
     }
