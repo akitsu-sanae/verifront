@@ -1,6 +1,5 @@
 #![feature(box_syntax)]
 #![feature(box_patterns)]
-#![feature(type_alias_enum_variants)]
 #![feature(slice_patterns)]
 
 extern crate sexp;
