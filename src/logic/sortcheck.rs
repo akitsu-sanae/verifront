@@ -1,4 +1,4 @@
-use crate::logic::{binder::*, expr::*, symbol::Symbol, theory::*};
+use super::{binder::*, expr::*, symbol::Symbol, theory::*};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]

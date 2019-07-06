@@ -1,5 +1,4 @@
-use crate::logic::{binder::*, expr::*, symbol, theory::*};
-use crate::sortcheck;
+use crate::logic::{binder::*, expr::*, sortcheck, symbol, theory::*};
 
 type FOL = crate::logic::expr::FOLWithTheory<integer::Integer>;
 
