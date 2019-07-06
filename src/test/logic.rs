@@ -1,10 +1,9 @@
-use crate::ident;
-use crate::logic::{binder::*, expr::*, theory::*};
+use crate::logic::{binder::*, expr::*, symbol, theory::*};
 
 use super::debug_print_check;
 
 fn make_var<T: Theory, B: IsBinder>(name: &str) -> Expr<T, B> {
-    Expr::Const(Const::Var(ident::make(name)))
+    Expr::Const(Const::Var(symbol::make(name)))
 }
 
 #[test]
@@ -32,7 +31,7 @@ fn theory() {
     debug_print_check( // forall a: Bool. a = true
         FOL::Binding(
             Quantifier::Forall,
-            vec!((ident::make("a"), Sort::Symbol(Bool))),
+            vec!((symbol::make("a"), Sort::Symbol(Bool))),
             box FOL::Apply(
                 Function::Symbol(Equal),
                 vec!(

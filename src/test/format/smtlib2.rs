@@ -1,6 +1,5 @@
 use crate::format::{smtlib2::*, Format};
-use crate::ident;
-use crate::logic::{binder::*, expr::*, theory::*};
+use crate::logic::{binder::*, expr::*, symbol, theory::*};
 use crate::util;
 use sexp::Sexp;
 
@@ -71,10 +70,10 @@ fn fol() {
         Smtlib2::new(vec![
             Command::Assert(FOL::Binding(
                 Quantifier::Exists,
-                vec![(ident::make("x"), int_sort())],
+                vec![(symbol::make("x"), int_sort())],
                 box FOL::Apply(
                     Function::Symbol(integer::FunctionSymbol::Lt),
-                    vec![FOL::Const(Const::Var(ident::make("x"))), int_literal(100)],
+                    vec![FOL::Const(Const::Var(symbol::make("x"))), int_literal(100)],
                 ),
             )),
             Command::CheckSat,
@@ -107,12 +106,12 @@ fn define_fun() {
     check_with_z3(
         Smtlib2::new(vec![
             Command::DefineFun(FunDef {
-                name: ident::make("plus4"),
-                params: vec![(ident::make("x"), int_sort())],
+                name: symbol::make("plus4"),
+                params: vec![(symbol::make("x"), int_sort())],
                 ret: int_sort(),
                 body: FOL::Apply(
                     Function::Symbol(integer::FunctionSymbol::Add),
-                    vec![FOL::Const(Const::Var(ident::make("x"))), int_literal(4)],
+                    vec![FOL::Const(Const::Var(symbol::make("x"))), int_literal(4)],
                 ),
             }),
             Command::Assert(FOL::Apply(
@@ -120,7 +119,7 @@ fn define_fun() {
                     boolean::FunctionSymbol::Equal,
                 )),
                 vec![
-                    FOL::Apply(Function::Var(ident::make("plus4")), vec![int_literal(2)]),
+                    FOL::Apply(Function::Var(symbol::make("plus4")), vec![int_literal(2)]),
                     int_literal(6),
                 ],
             )),
@@ -161,19 +160,19 @@ fn datatype() {
     // (declare-datatype Color ((red) (green) (blue)))
     check_with_z3::<integer::Integer, Quantifier>(
         Smtlib2::new(vec![Command::DeclareDatatype(DatatypeDec {
-            name: ident::make("Color"),
+            name: symbol::make("Color"),
             params: vec![],
             constructor_decs: vec![
                 ConstructorDec {
-                    name: ident::make("red"),
+                    name: symbol::make("red"),
                     selector_decs: vec![],
                 },
                 ConstructorDec {
-                    name: ident::make("green"),
+                    name: symbol::make("green"),
                     selector_decs: vec![],
                 },
                 ConstructorDec {
-                    name: ident::make("blue"),
+                    name: symbol::make("blue"),
                     selector_decs: vec![],
                 },
             ],
@@ -196,23 +195,23 @@ fn datatype() {
     //     (insert (head Int) (tail Intlist))))
     check_with_z3::<integer::Integer, Quantifier>(
         Smtlib2::new(vec![Command::DeclareDatatype(DatatypeDec {
-            name: ident::make("IntList"),
+            name: symbol::make("IntList"),
             params: vec![],
             constructor_decs: vec![
                 ConstructorDec {
-                    name: ident::make("empty"),
+                    name: symbol::make("empty"),
                     selector_decs: vec![],
                 },
                 ConstructorDec {
-                    name: ident::make("insert"),
+                    name: symbol::make("insert"),
                     selector_decs: vec![
                         SelectorDec {
-                            name: ident::make("head"),
+                            name: symbol::make("head"),
                             sort: int_sort(),
                         },
                         SelectorDec {
-                            name: ident::make("tail"),
-                            sort: Sort::Var(ident::make("IntList")),
+                            name: symbol::make("tail"),
+                            sort: Sort::Var(symbol::make("IntList")),
                         },
                     ],
                 },
@@ -247,23 +246,23 @@ fn datatype() {
     check_with_z3::<integer::Integer, Quantifier>(
         Smtlib2::new(vec!(
             Command::DeclareDatatype(DatatypeDec {
-                name: ident::make("List_"),
-                params: vec!(ident::make("T")),
+                name: symbol::make("List_"),
+                params: vec!(symbol::make("T")),
                 constructor_decs: vec!(
                     ConstructorDec {
-                        name: ident::make("nil"),
+                        name: symbol::make("nil"),
                         selector_decs: vec!(),
                     },
                     ConstructorDec {
-                        name: ident::make("cons"),
+                        name: symbol::make("cons"),
                         selector_decs: vec!(
                             SelectorDec {
-                                name: ident::make("car"),
-                                sort: Sort::Var(ident::make("T")),
+                                name: symbol::make("car"),
+                                sort: Sort::Var(symbol::make("T")),
                             },
                             SelectorDec {
-                                name: ident::make("cdr"),
-                                sort: Sort::Var(ident::make("List_"), Sort::Var(ident::make("T"))),
+                                name: symbol::make("cdr"),
+                                sort: Sort::Var(symbol::make("List_"), Sort::Var(symbol::make("T"))),
                             }),
                     })}))),
         vec!(
@@ -282,27 +281,27 @@ fn commands() {
             Command::SetOption(Option::ProduceProofs(true)),
             Command::SetOption(Option::ProduceUnsatAssumptions(true)),
             Command::SetOption(Option::ProduceUnsatCores(true)),
-            Command::DeclareConst((ident::make("A"), int_sort())),
-            Command::DeclareConst((ident::make("B"), bool_sort())),
+            Command::DeclareConst((symbol::make("A"), int_sort())),
+            Command::DeclareConst((symbol::make("B"), bool_sort())),
             Command::Assert(FOL::Const(Const::Symbol(integer::ConstSymbol::Boolean(
                 boolean::ConstSymbol::True,
             )))),
             Command::CheckSat,
-            Command::CheckSatAssuming(vec![ident::make("B")], vec![ident::make("B")]),
+            Command::CheckSatAssuming(vec![symbol::make("B")], vec![symbol::make("B")]),
             Command::DeclareDatatype(DatatypeDec {
-                name: ident::make("Color"),
+                name: symbol::make("Color"),
                 params: vec![],
                 constructor_decs: vec![
                     ConstructorDec {
-                        name: ident::make("red"),
+                        name: symbol::make("red"),
                         selector_decs: vec![],
                     },
                     ConstructorDec {
-                        name: ident::make("green"),
+                        name: symbol::make("green"),
                         selector_decs: vec![],
                     },
                     ConstructorDec {
-                        name: ident::make("blue"),
+                        name: symbol::make("blue"),
                         selector_decs: vec![],
                     },
                 ],
@@ -311,49 +310,49 @@ fn commands() {
             //     (Tree leaf (node (value T) (children TreeList)))
             //     (TreeList nil (cons (car Tree) (cdr TreeList)))))
             Command::DeclareDatatypes(
-                vec![ident::make("T")],
+                vec![symbol::make("T")],
                 vec![
                     DatatypeDec {
-                        name: ident::make("Tree"),
+                        name: symbol::make("Tree"),
                         params: vec![],
                         constructor_decs: vec![
                             ConstructorDec {
-                                name: ident::make("leaf"),
+                                name: symbol::make("leaf"),
                                 selector_decs: vec![],
                             },
                             ConstructorDec {
-                                name: ident::make("node"),
+                                name: symbol::make("node"),
                                 selector_decs: vec![
                                     SelectorDec {
-                                        name: ident::make("value"),
-                                        sort: Sort::Var(ident::make("T")),
+                                        name: symbol::make("value"),
+                                        sort: Sort::Var(symbol::make("T")),
                                     },
                                     SelectorDec {
-                                        name: ident::make("children"),
-                                        sort: Sort::Var(ident::make("TreeList")),
+                                        name: symbol::make("children"),
+                                        sort: Sort::Var(symbol::make("TreeList")),
                                     },
                                 ],
                             },
                         ],
                     },
                     DatatypeDec {
-                        name: ident::make("TreeList"),
+                        name: symbol::make("TreeList"),
                         params: vec![],
                         constructor_decs: vec![
                             ConstructorDec {
-                                name: ident::make("nil"),
+                                name: symbol::make("nil"),
                                 selector_decs: vec![],
                             },
                             ConstructorDec {
-                                name: ident::make("cons"),
+                                name: symbol::make("cons"),
                                 selector_decs: vec![
                                     SelectorDec {
-                                        name: ident::make("car"),
-                                        sort: Sort::Var(ident::make("Tree")),
+                                        name: symbol::make("car"),
+                                        sort: Sort::Var(symbol::make("Tree")),
                                     },
                                     SelectorDec {
-                                        name: ident::make("cdr"),
-                                        sort: Sort::Var(ident::make("TreeList")),
+                                        name: symbol::make("cdr"),
+                                        sort: Sort::Var(symbol::make("TreeList")),
                                     },
                                 ],
                             },
@@ -363,36 +362,36 @@ fn commands() {
             ),
             Command::DeclareFun(FunDec {
                 // id(x: Int) = x
-                name: ident::make("id"),
+                name: symbol::make("id"),
                 params: vec![int_sort()],
                 ret: int_sort(),
             }),
-            Command::DeclareSort(ident::make("sort1"), 1),
+            Command::DeclareSort(symbol::make("sort1"), 1),
             Command::DefineFun(FunDef {
                 // incr(x: Int) = x+1
-                name: ident::make("incr"),
-                params: vec![(ident::make("x"), int_sort())],
+                name: symbol::make("incr"),
+                params: vec![(symbol::make("x"), int_sort())],
                 ret: int_sort(),
                 body: FOL::Apply(
                     Function::Symbol(integer::FunctionSymbol::Add),
-                    vec![FOL::Const(Const::Var(ident::make("x"))), int_literal(1)],
+                    vec![FOL::Const(Const::Var(symbol::make("x"))), int_literal(1)],
                 ),
             }),
             Command::DefineFunRec(FunDef {
                 // incr_rec(x: Int) = x+1
-                name: ident::make("incr_rec"),
-                params: vec![(ident::make("x"), int_sort())],
+                name: symbol::make("incr_rec"),
+                params: vec![(symbol::make("x"), int_sort())],
                 ret: int_sort(),
                 body: FOL::Apply(
                     Function::Symbol(integer::FunctionSymbol::Add),
-                    vec![FOL::Const(Const::Var(ident::make("x"))), int_literal(1)],
+                    vec![FOL::Const(Const::Var(symbol::make("x"))), int_literal(1)],
                 ),
             }),
             Command::DefineFunsRec(vec![
                 // even(x: Int) = if x == 0 then 0 else odd(x-1)
                 FunDef {
-                    name: ident::make("even"),
-                    params: vec![(ident::make("x"), int_sort())],
+                    name: symbol::make("even"),
+                    params: vec![(symbol::make("x"), int_sort())],
                     ret: int_sort(),
                     body: FOL::Apply(
                         Function::Symbol(integer::FunctionSymbol::from(
@@ -403,14 +402,14 @@ fn commands() {
                                 Function::Symbol(integer::FunctionSymbol::from(
                                     boolean::FunctionSymbol::Equal,
                                 )),
-                                vec![FOL::Const(Const::Var(ident::make("x"))), int_literal(1)],
+                                vec![FOL::Const(Const::Var(symbol::make("x"))), int_literal(1)],
                             ),
                             int_literal(0),
                             FOL::Apply(
-                                Function::Var(ident::make("odd")),
+                                Function::Var(symbol::make("odd")),
                                 vec![FOL::Apply(
                                     Function::Symbol(integer::FunctionSymbol::Sub),
-                                    vec![FOL::Const(Const::Var(ident::make("x"))), int_literal(1)],
+                                    vec![FOL::Const(Const::Var(symbol::make("x"))), int_literal(1)],
                                 )],
                             ),
                         ],
@@ -418,22 +417,22 @@ fn commands() {
                 },
                 // odd(x: Int) = even(x-1)
                 FunDef {
-                    name: ident::make("odd"),
-                    params: vec![(ident::make("x"), int_sort())],
+                    name: symbol::make("odd"),
+                    params: vec![(symbol::make("x"), int_sort())],
                     ret: int_sort(),
                     body: FOL::Apply(
-                        Function::Var(ident::make("even")),
+                        Function::Var(symbol::make("even")),
                         vec![FOL::Apply(
                             Function::Symbol(integer::FunctionSymbol::Sub),
-                            vec![FOL::Const(Const::Var(ident::make("x"))), int_literal(1)],
+                            vec![FOL::Const(Const::Var(symbol::make("x"))), int_literal(1)],
                         )],
                     ),
                 },
             ]),
             Command::DefineSort(
-                ident::make("sort_id"),
-                vec![ident::make("a")],
-                Sort::Var(ident::make("a")),
+                symbol::make("sort_id"),
+                vec![symbol::make("a")],
+                Sort::Var(symbol::make("a")),
             ),
             Command::Echo("some message here!".to_string()),
             Command::GetAssertions,

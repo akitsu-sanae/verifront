@@ -2,7 +2,6 @@ use sexp::Sexp;
 use std::error::Error;
 use std::fmt;
 
-use crate::ident::Ident;
 use crate::util;
 
 use super::*;
@@ -156,7 +155,7 @@ fn sexp_of_funsdef_rec<T: Smtlib2Theory, B: Smtlib2Binder>(
 
 fn sexp_of_define_sort<T: Smtlib2Theory>(
     ident: &String,
-    params: &Vec<Ident>,
+    params: &Vec<Symbol>,
     sort: &Sort<T>,
 ) -> Result<Sexp, PrintError> {
     Ok(Sexp::List(vec![
@@ -245,7 +244,7 @@ fn sexp_of_declare_datatype<T: Smtlib2Theory>(
 }
 
 fn sexp_of_declare_datatypes<T: Smtlib2Theory>(
-    sort_decs: &Vec<Ident>,
+    sort_decs: &Vec<Symbol>,
     datatype_decs: &Vec<DatatypeDec<T>>,
 ) -> Result<Sexp, PrintError> {
     let mut sorts_sexp = vec![];
@@ -271,7 +270,7 @@ fn sexp_of_declare_datatypes<T: Smtlib2Theory>(
     ]))
 }
 
-fn sexp_of_check_sat_assuming(poss: &Vec<Ident>, negs: &Vec<Ident>) -> Result<Sexp, PrintError> {
+fn sexp_of_check_sat_assuming(poss: &Vec<Symbol>, negs: &Vec<Symbol>) -> Result<Sexp, PrintError> {
     let mut propos = vec![];
     for pos in poss.iter() {
         propos.push(util::make_str_atom(pos.as_str()));

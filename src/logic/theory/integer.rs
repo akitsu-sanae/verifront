@@ -13,7 +13,7 @@ impl From<Sort<boolean::Boolean>> for Sort<Integer> {
     fn from(s: Sort<boolean::Boolean>) -> Sort<Integer> {
         match s {
             Sort::Symbol(ss) => Sort::Symbol(SortSymbol::from(ss)),
-            Sort::Var(ident) => Sort::Var(ident),
+            Sort::Var(symbol) => Sort::Var(symbol),
         }
     }
 }
@@ -68,7 +68,7 @@ impl IsFunctionSymbol<Integer> for FunctionSymbol {
         use SortSymbol::*;
         match self {
             Boolean(bool_ss) => match boolean::FunctionSymbol::ret_sort(bool_ss) {
-                Sort::Var(ident) => Sort::Var(ident),
+                Sort::Var(symbol) => Sort::Var(symbol),
                 Sort::Symbol(boolean::SortSymbol::Bool) => Sort::Symbol(Bool),
             },
             Add | Sub | Mult | Div => Sort::Symbol(Int),

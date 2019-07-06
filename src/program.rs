@@ -1,6 +1,10 @@
-use crate::ident::Ident;
-
 // tiny ML-like program
+
+pub type Ident = String;
+
+pub fn make_ident(str: &str) -> Ident {
+    str.to_string()
+}
 
 pub trait Value {
     type Constant;

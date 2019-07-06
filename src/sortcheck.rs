@@ -1,10 +1,9 @@
-use crate::ident::Ident;
-use crate::logic::{binder::*, expr::*, theory::*};
+use crate::logic::{binder::*, expr::*, symbol::Symbol, theory::*};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 struct Env<T: Theory> {
-    data: HashMap<Ident, Sort<T>>,
+    data: HashMap<Symbol, Sort<T>>,
 }
 
 impl<T: Theory> Env<T> {
@@ -13,23 +12,23 @@ impl<T: Theory> Env<T> {
             data: HashMap::new(),
         }
     }
-    pub fn push(&self, ident: Ident, sort: Sort<T>) -> Env<T> {
+    pub fn push(&self, symbol: Symbol, sort: Sort<T>) -> Env<T> {
         let mut ret = self.clone();
-        ret.data.insert(ident, sort);
+        ret.data.insert(symbol, sort);
         ret
     }
-    pub fn append(&self, elems: Vec<(Ident, Sort<T>)>) -> Env<T> {
+    pub fn append(&self, elems: Vec<(Symbol, Sort<T>)>) -> Env<T> {
         let mut ret = self.clone();
-        for (ident, sort) in elems {
-            ret.data.insert(ident, sort);
+        for (symbol, sort) in elems {
+            ret.data.insert(symbol, sort);
         }
         ret
     }
-    pub fn lookup(&self, ident: &Ident) -> Result<Sort<T>, String> {
+    pub fn lookup(&self, symbol: &Symbol) -> Result<Sort<T>, String> {
         self.data
-            .get(ident)
+            .get(symbol)
             .cloned()
-            .ok_or(format!("not found {} in {:?} ", ident, self))
+            .ok_or(format!("not found {} in {:?} ", symbol, self))
     }
 }
 
@@ -58,7 +57,7 @@ fn unify<T: Theory>(params: Vec<Sort<T>>, args: Vec<Sort<T>>) -> Result<Env<T>, 
 fn apply_subst<T: Theory>(ret: Sort<T>, subst: Env<T>) -> Result<Sort<T>, String> {
     match ret {
         Sort::Symbol(sym) => Ok(Sort::Symbol(sym)),
-        Sort::Var(ident) => subst.lookup(&ident),
+        Sort::Var(symbol) => subst.lookup(&symbol),
     }
 }
 
@@ -83,12 +82,12 @@ fn expr_with_env<T: Theory, B: IsBinder>(
                     let ret = apply_subst::<T>(ret, subst)?;
                     Ok(ret)
                 }
-                Function::Var(ident) => env.lookup(ident),
+                Function::Var(symbol) => env.lookup(symbol),
             }
         }
         Expr::Const(c) => match c {
             Const::Symbol(cs) => Ok(cs.sort()),
-            Const::Var(ident) => env.lookup(ident),
+            Const::Var(symbol) => env.lookup(symbol),
         },
     }
 }

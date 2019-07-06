@@ -3,7 +3,6 @@ use std::error::Error;
 use std::fmt;
 
 use super::*;
-use crate::ident::{self, Ident};
 use crate::util;
 
 #[derive(Debug, Clone)]
@@ -36,16 +35,16 @@ impl Error for ParseError {
 
 fn params_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(
     sexp: &Sexp,
-) -> Result<Vec<(Ident, Sort<T>)>, ParseError> {
+) -> Result<Vec<(Symbol, Sort<T>)>, ParseError> {
     if let Sexp::List(params) = sexp {
         let params: Result<Vec<_>, _> = params
             .iter()
             .map(|param| {
                 if let Sexp::List(param) = param {
                     match param.as_slice() {
-                        [Sexp::Atom(Atom::S(ident)), sort] => {
+                        [Sexp::Atom(Atom::S(symbol)), sort] => {
                             let sort = sort_of_sexp::<T>(sort)?;
-                            Ok((ident.clone(), sort))
+                            Ok((symbol.clone(), sort))
                         }
                         param => Err(ParseError::InvalidSexp("param", Sexp::List(param.to_vec()))),
                     }
@@ -65,7 +64,7 @@ fn sort_of_sexp<T: Smtlib2Theory>(sexp: &Sexp) -> Result<Sort<T>, ParseError> {
         .map(|fs| Sort::Symbol(fs))
         .or_else(|_| {
             if let Sexp::Atom(Atom::S(var)) = sexp {
-                Ok(Sort::Var(ident::make(&var)))
+                Ok(Sort::Var(symbol::make(&var)))
             } else {
                 Err(ParseError::InvalidSexp("sort", sexp.clone()))
             }
@@ -79,7 +78,7 @@ fn function_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(
         .map(|fs| Function::Symbol(fs))
         .or_else(|_| {
             if let Sexp::Atom(Atom::S(var)) = sexp {
-                Ok(Function::Var(ident::make(&var)))
+                Ok(Function::Var(symbol::make(&var)))
             } else {
                 Err(ParseError::InvalidSexp("function", sexp.clone()))
             }
@@ -91,27 +90,27 @@ fn const_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(sexp: &Sexp) -> Result<Cons
         .map(|fs| Const::Symbol(fs))
         .or_else(|_| {
             if let Sexp::Atom(Atom::S(var)) = sexp {
-                Ok(Const::Var(ident::make(&var)))
+                Ok(Const::Var(symbol::make(&var)))
             } else {
                 Err(ParseError::InvalidSexp("const", sexp.clone()))
             }
         })
 }
 
-fn check_sat_assuming_of_sexp(sexp: &Sexp) -> Result<(Vec<Ident>, Vec<Ident>), ParseError> {
+fn check_sat_assuming_of_sexp(sexp: &Sexp) -> Result<(Vec<Symbol>, Vec<Symbol>), ParseError> {
     if let Sexp::List(literals) = sexp {
         let mut poss = vec![];
         let mut negs = vec![];
         for literal in literals {
             // TODO: be more elegant
-            if let Sexp::Atom(Atom::S(ident)) = literal {
-                poss.push(ident::make(ident.as_str()));
+            if let Sexp::Atom(Atom::S(symbol)) = literal {
+                poss.push(symbol::make(symbol.as_str()));
             } else if let Sexp::List(sexps) = literal {
                 match sexps.as_slice() {
-                    [Sexp::Atom(Atom::S(not)), Sexp::Atom(Atom::S(ident))]
+                    [Sexp::Atom(Atom::S(not)), Sexp::Atom(Atom::S(symbol))]
                         if not.as_str() == "not" =>
                     {
-                        negs.push(ident::make(ident.as_str()));
+                        negs.push(symbol::make(symbol.as_str()));
                     }
                     sexps => {
                         return Err(ParseError::InvalidSexp(
@@ -183,7 +182,7 @@ fn datatype_dec_of_sexp<T: Smtlib2Theory>(
             constructor_decs.push(constructor_dec_of_sexp::<T>(sexp)?);
         }
         Ok(DatatypeDec {
-            name: ident::make(name),
+            name: symbol::make(name),
             params: vec![],
             constructor_decs: constructor_decs,
         })
@@ -287,7 +286,7 @@ fn expr_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(sexp: &Sexp) -> Result<Expr<
         },
         Sexp::Atom(atom) => Ok(Expr::Const(
             const_of_sexp::<T, B>(&Sexp::Atom(atom.clone())).or_else(|_| match atom {
-                Atom::S(name) => Ok(Const::Var(ident::make(name))),
+                Atom::S(name) => Ok(Const::Var(symbol::make(name))),
                 _ => Err(ParseError::InvalidSexp("expr", Sexp::Atom(atom.clone()))),
             })?,
         )),
@@ -434,11 +433,11 @@ where
                     let (poss, negs) = check_sat_assuming_of_sexp(body)?;
                     Command::CheckSatAssuming(poss, negs)
                 }
-                [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(ident)), sort]
+                [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(symbol)), sort]
                     if head.as_str() == "declare-const" =>
                 {
                     let sort = sort_of_sexp::<T>(sort)?;
-                    Command::DeclareConst((ident.clone(), sort))
+                    Command::DeclareConst((symbol.clone(), sort))
                 }
                 [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(name)), datatype_dec_body]
                     if head.as_str() == "declare-datatype" =>
@@ -452,7 +451,7 @@ where
                     let sort_decs: Result<Vec<_>, _> = sort_decs
                         .iter()
                         .map(|sort_dec| match sort_dec {
-                            Sexp::Atom(Atom::S(ident)) => Ok(ident.clone()),
+                            Sexp::Atom(Atom::S(symbol)) => Ok(symbol.clone()),
                             sexp => Err(ParseError::InvalidSexp("sort dec", sexp.clone())),
                         })
                         .collect();
@@ -474,10 +473,10 @@ where
                         ret: sort,
                     })
                 }
-                [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(ident)), Sexp::Atom(Atom::I(n))]
+                [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(symbol)), Sexp::Atom(Atom::I(n))]
                     if head.as_str() == "declare-sort" =>
                 {
-                    Command::DeclareSort(ident.clone(), *n)
+                    Command::DeclareSort(symbol.clone(), *n)
                 }
                 [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(name)), params, sort, expr]
                     if head.as_str() == "define-fun" =>
@@ -510,22 +509,22 @@ where
                 {
                     Command::DefineFunsRec(fun_defs_of_sexp(fun_decs, terms)?)
                 }
-                [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(ident)), Sexp::List(params), sort]
+                [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(symbol)), Sexp::List(params), sort]
                     if head.as_str() == "define-sort" =>
                 {
                     let params: Result<Vec<_>, _> = params
                         .iter()
                         .map(|param| {
-                            if let Sexp::Atom(Atom::S(ident)) = param {
-                                Ok(ident.clone())
+                            if let Sexp::Atom(Atom::S(symbol)) = param {
+                                Ok(symbol.clone())
                             } else {
-                                Err(ParseError::InvalidSexp("ident", param.clone()))
+                                Err(ParseError::InvalidSexp("symbol", param.clone()))
                             }
                         })
                         .collect();
                     let params = params?;
                     let sort = sort_of_sexp::<T>(sort)?;
-                    Command::DefineSort(ident.clone(), params, sort)
+                    Command::DefineSort(symbol.clone(), params, sort)
                 }
                 [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(msg))]
                     if head.as_str() == "echo" =>

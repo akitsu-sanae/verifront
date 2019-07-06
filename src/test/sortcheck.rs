@@ -1,11 +1,10 @@
-use crate::ident;
-use crate::logic::{binder::*, expr::*, theory::*};
+use crate::logic::{binder::*, expr::*, symbol, theory::*};
 use crate::sortcheck;
 
 type FOL = crate::logic::expr::FOLWithTheory<integer::Integer>;
 
 fn make_var<T: Theory, B: IsBinder>(name: &str) -> Expr<T, B> {
-    Expr::Const(Const::Var(ident::make(name)))
+    Expr::Const(Const::Var(symbol::make(name)))
 }
 
 fn check(expr: FOL, sort: Sort<integer::Integer>) {
@@ -38,7 +37,7 @@ fn binding() {
         // forall a: Bool. a = true
         FOL::Binding(
             Quantifier::Forall,
-            vec![(ident::make("a"), Sort::Symbol(SortSymbol::Bool))],
+            vec![(symbol::make("a"), Sort::Symbol(SortSymbol::Bool))],
             box FOL::Apply(
                 Function::Symbol(FunctionSymbol::Boolean(Equal)),
                 vec![
@@ -54,7 +53,7 @@ fn binding() {
         // exists a: Int. 42 + a = 0
         FOL::Binding(
             Quantifier::Exists,
-            vec![(ident::make("a"), Sort::Symbol(SortSymbol::Int))],
+            vec![(symbol::make("a"), Sort::Symbol(SortSymbol::Int))],
             box FOL::Apply(
                 Function::Symbol(FunctionSymbol::Boolean(Equal)),
                 vec![

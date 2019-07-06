@@ -1,6 +1,5 @@
 use crate::format::smtlib2::Smtlib2Theory;
-use crate::ident;
-use crate::logic::theory::*;
+use crate::logic::{symbol, theory::*};
 use crate::util;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -27,7 +26,7 @@ impl IsFunctionSymbol<Boolean> for FunctionSymbol {
         match self {
             Not => vec![Sort::Symbol(Bool)],
             And | Or | Imply => vec![Sort::Symbol(Bool), Sort::Symbol(Bool)],
-            Equal | IfThenElse => vec![Sort::Var(ident::make("A")), Sort::Var(ident::make("A"))],
+            Equal | IfThenElse => vec![Sort::Var(symbol::make("A")), Sort::Var(symbol::make("A"))],
         }
     }
 
@@ -36,7 +35,7 @@ impl IsFunctionSymbol<Boolean> for FunctionSymbol {
         use SortSymbol::*;
         match self {
             Not | And | Or | Imply => Sort::Symbol(Bool),
-            Equal | IfThenElse => Sort::Var(ident::make("A")),
+            Equal | IfThenElse => Sort::Var(symbol::make("A")),
         }
     }
 }

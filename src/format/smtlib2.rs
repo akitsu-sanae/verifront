@@ -1,6 +1,10 @@
 use super::Format;
-use crate::ident::Ident;
-use crate::logic::{binder::*, expr::*, theory::*};
+use crate::logic::{
+    binder::*,
+    expr::*,
+    symbol::{self, Symbol},
+    theory::*,
+};
 use sexp::Sexp;
 
 mod print;
@@ -26,33 +30,33 @@ pub trait Smtlib2Binder: IsBinder + Sized {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SelectorDec<T: Smtlib2Theory> {
-    pub name: Ident,
+    pub name: Symbol,
     pub sort: Sort<T>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConstructorDec<T: Smtlib2Theory> {
-    pub name: Ident,
+    pub name: Symbol,
     pub selector_decs: Vec<SelectorDec<T>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DatatypeDec<T: Smtlib2Theory> {
-    pub name: Ident,
-    pub params: Vec<Ident>,
+    pub name: Symbol,
+    pub params: Vec<Symbol>,
     pub constructor_decs: Vec<ConstructorDec<T>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunDec<T: Smtlib2Theory> {
-    pub name: Ident,
+    pub name: Symbol,
     pub params: Vec<Sort<T>>,
     pub ret: Sort<T>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunDef<T: Smtlib2Theory, B: Smtlib2Binder> {
-    pub name: Ident,
+    pub name: Symbol,
     pub params: Vec<SortedSymbol<T>>,
     pub ret: Sort<T>,
     pub body: Expr<T, B>,
@@ -61,7 +65,7 @@ pub struct FunDef<T: Smtlib2Theory, B: Smtlib2Binder> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AttributeValue {
     SpecConstant(String), // FIXME
-    Symbol(Ident),
+    Symbol(Symbol),
     // Sexp(Sexp), NOTE: no Eq implemention for Sexp
 }
 
@@ -107,16 +111,16 @@ pub enum Command<T: Smtlib2Theory, B: Smtlib2Binder> {
     // version 2.6
     Assert(Expr<T, B>),
     CheckSat,
-    CheckSatAssuming(Vec<Ident>, Vec<Ident>), // positives and negativs
+    CheckSatAssuming(Vec<Symbol>, Vec<Symbol>), // positives and negativs
     DeclareConst(SortedSymbol<T>),
     DeclareDatatype(DatatypeDec<T>),
-    DeclareDatatypes(Vec<Ident>, Vec<DatatypeDec<T>>),
+    DeclareDatatypes(Vec<Symbol>, Vec<DatatypeDec<T>>),
     DeclareFun(FunDec<T>),
-    DeclareSort(Ident, i64),
+    DeclareSort(Symbol, i64),
     DefineFun(FunDef<T, B>),
     DefineFunRec(FunDef<T, B>),
     DefineFunsRec(Vec<FunDef<T, B>>),
-    DefineSort(Ident, Vec<Ident>, Sort<T>),
+    DefineSort(Symbol, Vec<Symbol>, Sort<T>),
     Echo(String),
     Exit,
     GetAssertions,

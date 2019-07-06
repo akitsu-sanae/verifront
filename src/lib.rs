@@ -6,7 +6,6 @@
 extern crate sexp;
 
 pub mod format;
-pub mod ident;
 pub mod logic;
 pub mod program;
 pub mod sortcheck;

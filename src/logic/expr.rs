@@ -1,9 +1,8 @@
-use crate::ident::Ident;
-use crate::logic::{binder::*, theory::*};
+use crate::logic::{binder::*, symbol::Symbol, theory::*};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expr<T: Theory, B: IsBinder> {
-    Binding(B, Vec<(Ident, Sort<T>)>, Box<Expr<T, B>>),
+    Binding(B, Vec<(Symbol, Sort<T>)>, Box<Expr<T, B>>),
     Apply(Function<T>, Vec<Expr<T, B>>),
     Const(Const<T>),
 }
