@@ -40,3 +40,123 @@ fn theory() {
                 ))),
                 r#"Binding(Forall, [("a", Symbol(Bool))], Apply(Symbol(Equal), [Const(Var("a")), Const(Symbol(True))]))"#);
 }
+
+#[test]
+fn nnf() {
+    use boolean::FunctionSymbol::{And, Equal, Or};
+    use integer::ConstSymbol::Number;
+    use Quantifier::*;
+    let int_sort: Sort<integer::Integer> = Sort::Symbol(integer::SortSymbol::Int);
+    fn make_fun(sym: boolean::FunctionSymbol) -> Function<integer::Integer> {
+        Function::Symbol(integer::FunctionSymbol::from(sym))
+    }
+    // not (forall x. x=1 or x = 2)
+    // exists x. not(x=1) and not(x=2)
+    assert_eq!(
+        Expr::Binding(
+            Forall,
+            vec![(symbol::make("x"), int_sort.clone())],
+            box Expr::Apply(
+                make_fun(Or),
+                vec![
+                    Expr::Apply(
+                        make_fun(Equal),
+                        vec![
+                            Expr::Const(Const::Var(symbol::make("x"))),
+                            Expr::Const(Const::Symbol(Number(1))),
+                        ]
+                    ),
+                    Expr::Apply(
+                        make_fun(Equal),
+                        vec![
+                            Expr::Const(Const::Var(symbol::make("x"))),
+                            Expr::Const(Const::Symbol(Number(2))),
+                        ]
+                    ),
+                ]
+            )
+        )
+        .neg()
+        .to_nnf(),
+        Expr::Binding(
+            Exists,
+            vec![(symbol::make("x"), int_sort.clone())],
+            box Expr::Apply(
+                make_fun(And),
+                vec![
+                    Expr::Apply(
+                        make_fun(Equal),
+                        vec![
+                            Expr::Const(Const::Var(symbol::make("x"))),
+                            Expr::Const(Const::Symbol(Number(1))),
+                        ]
+                    )
+                    .neg(),
+                    Expr::Apply(
+                        make_fun(Equal),
+                        vec![
+                            Expr::Const(Const::Var(symbol::make("x"))),
+                            Expr::Const(Const::Symbol(Number(2))),
+                        ]
+                    )
+                    .neg()
+                ]
+            )
+        )
+    );
+
+    // forall x. not (x=1 or not(x=2))
+    // forall x. not(x=1) and x=2
+    assert_eq!(
+        Expr::Binding(
+            Forall,
+            vec![(symbol::make("x"), int_sort.clone())],
+            box Expr::Apply(
+                make_fun(Or),
+                vec![
+                    Expr::Apply(
+                        make_fun(Equal),
+                        vec![
+                            Expr::Const(Const::Var(symbol::make("x"))),
+                            Expr::Const(Const::Symbol(Number(1))),
+                        ]
+                    ),
+                    Expr::Apply(
+                        make_fun(Equal),
+                        vec![
+                            Expr::Const(Const::Var(symbol::make("x"))),
+                            Expr::Const(Const::Symbol(Number(2))),
+                        ]
+                    )
+                    .neg(),
+                ]
+            )
+            .neg()
+        )
+        .to_nnf(),
+        Expr::Binding(
+            Forall,
+            vec![(symbol::make("x"), int_sort.clone())],
+            box Expr::Apply(
+                make_fun(And),
+                vec![
+                    Expr::Apply(
+                        make_fun(Equal),
+                        vec![
+                            Expr::Const(Const::Var(symbol::make("x"))),
+                            Expr::Const(Const::Symbol(Number(1))),
+                        ]
+                    )
+                    .neg(),
+                    Expr::Apply(
+                        make_fun(Equal),
+                        vec![
+                            Expr::Const(Const::Var(symbol::make("x"))),
+                            Expr::Const(Const::Symbol(Number(2))),
+                        ]
+                    )
+                ]
+            )
+        )
+    );
+}

@@ -30,6 +30,72 @@ impl<T: Theory, B: IsBinder> Expr<T, B> {
     }
 }
 
+impl<T: Theory> Expr<T, Quantifier> {
+    pub fn neg(self) -> Self {
+        use boolean::FunctionSymbol::*;
+        Expr::Apply(Function::Symbol(T::FunctionSymbol::from(Not)), vec![self])
+    }
+
+    pub fn to_nnf(self) -> Self {
+        use boolean::FunctionSymbol::*;
+        use Expr::*;
+        match self {
+            Binding(q, bounds, box inner) => Binding(q, bounds, box inner.to_nnf()),
+            Apply(Function::Symbol(op), mut args) => {
+                if op == T::FunctionSymbol::from(Not) {
+                    let arg = args.pop().unwrap();
+                    match arg {
+                        Binding(op, bounds, box inner) => {
+                            Binding(op.flip(), bounds, box inner.neg().to_nnf())
+                        }
+                        Apply(Function::Symbol(op), mut args)
+                            if op.clone() == T::FunctionSymbol::from(Not) =>
+                        {
+                            args.pop().unwrap()
+                        }
+                        Apply(Function::Symbol(op), mut args)
+                            if op.clone() == T::FunctionSymbol::from(And) =>
+                        {
+                            let rhs = args.pop().unwrap();
+                            let lhs = args.pop().unwrap();
+                            Apply(
+                                Function::Symbol(T::FunctionSymbol::from(Or)),
+                                vec![lhs.neg().to_nnf(), rhs.neg().to_nnf()],
+                            )
+                        }
+                        Apply(Function::Symbol(op), mut args)
+                            if op.clone() == T::FunctionSymbol::from(Or) =>
+                        {
+                            let rhs = args.pop().unwrap();
+                            let lhs = args.pop().unwrap();
+                            Apply(
+                                Function::Symbol(T::FunctionSymbol::from(And)),
+                                vec![lhs.neg().to_nnf(), rhs.neg().to_nnf()],
+                            )
+                        }
+                        Apply(Function::Symbol(op), mut args)
+                            if op.clone() == T::FunctionSymbol::from(Imply) =>
+                        {
+                            // not(lhs => rhs) = lhs and (not rhs)
+                            let rhs = args.pop().unwrap();
+                            let lhs = args.pop().unwrap();
+                            Apply(
+                                Function::Symbol(T::FunctionSymbol::from(And)),
+                                vec![lhs.to_nnf(), rhs.neg().to_nnf()],
+                            )
+                        }
+                        e => e.neg(),
+                    }
+                } else {
+                    let args = args.into_iter().map(Self::to_nnf).collect();
+                    Apply(Function::Symbol(op), args)
+                }
+            }
+            e => e,
+        }
+    }
+}
+
 pub type ProposWithTheory<T> = Expr<T, EmptyBinder>;
 pub type Propos = ProposWithTheory<boolean::Boolean>;
 pub type FOLWithTheory<T> = Expr<T, Quantifier>;

@@ -26,6 +26,16 @@ pub enum Quantifier {
     Exists,
 }
 
+impl Quantifier {
+    pub fn flip(self) -> Self {
+        use Quantifier::*;
+        match self {
+            Forall => Exists,
+            Exists => Forall,
+        }
+    }
+}
+
 impl IsBinder for Quantifier {}
 
 impl Smtlib2Binder for Quantifier {

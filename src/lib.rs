@@ -1,6 +1,7 @@
 #![feature(box_syntax)]
 #![feature(box_patterns)]
 #![feature(slice_patterns)]
+#![feature(bind_by_move_pattern_guards)]
 
 extern crate sexp;
 
