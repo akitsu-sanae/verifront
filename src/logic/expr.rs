@@ -7,6 +7,19 @@ pub enum Expr<T: Theory, B: IsBinder> {
     Const(Const<T>),
 }
 
+impl<T: Theory> From<Expr<T, EmptyBinder>> for Expr<T, Quantifier> {
+    fn from(phi: Expr<T, EmptyBinder>) -> Self {
+        match phi {
+            Expr::Binding(_, _, _) => unreachable!(),
+            Expr::Apply(f, args) => {
+                let args = args.into_iter().map(|arg| Self::from(arg)).collect();
+                Expr::Apply(f, args)
+            }
+            Expr::Const(c) => Expr::Const(c),
+        }
+    }
+}
+
 impl<T: Theory, B: IsBinder> Expr<T, B> {
     fn acc(mut exprs: Vec<Self>, op: boolean::FunctionSymbol) -> Self {
         use boolean::ConstSymbol::True;
@@ -93,6 +106,12 @@ impl<T: Theory> Expr<T, Quantifier> {
             }
             e => e,
         }
+    }
+}
+
+impl<T: Theory> Expr<T, EmptyBinder> {
+    pub fn to_cnf(self) -> super::cnf::Cnf<T> {
+        super::cnf::Cnf::from_formula(self)
     }
 }
 
