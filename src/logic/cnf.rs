@@ -1,8 +1,8 @@
 use super::binder::EmptyBinder;
-use super::expr::Expr;
+use super::term::Term;
 use super::theory::{boolean, Const, Function, Theory};
 
-pub type Formula<T> = Expr<T, EmptyBinder>;
+pub type Formula<T> = Term<T, EmptyBinder>;
 
 #[derive(Debug, Clone)]
 pub struct Atom<T: Theory>(Formula<T>);
@@ -47,7 +47,7 @@ fn cnf_fresh_var<T: Theory>() -> Literal<T> {
     let mut fresh_counter = CNF_FRESH_COUNTER.write().unwrap();
     let name = format!("cnf.fresh-counter.{}", fresh_counter);
     *fresh_counter += 1;
-    Literal::make(Atom(Expr::Const(Const::Var(name))))
+    Literal::make(Atom(Term::Const(Const::Var(name))))
 }
 
 impl<T: Theory> Cnf<T> {
@@ -58,15 +58,15 @@ impl<T: Theory> Cnf<T> {
             clauses: Vec<Clause<T>>,
         ) -> (Literal<T>, Vec<Clause<T>>) {
             match phi {
-                Expr::Binding(_, _, _) => unreachable!(),
-                Expr::Apply(Function::Symbol(op), mut args)
+                Term::Binding(_, _, _) => unreachable!(),
+                Term::Apply(Function::Symbol(op), mut args)
                     if args.len() == 1 && op == T::FunctionSymbol::from(Not) =>
                 {
                     let arg = args.pop().unwrap();
                     let (phi, clauses) = aux(arg, clauses);
                     (phi.neg(), clauses)
                 }
-                Expr::Apply(Function::Symbol(op), mut args)
+                Term::Apply(Function::Symbol(op), mut args)
                     if args.len() == 2 && op == T::FunctionSymbol::from(And) =>
                 {
                     let arg2 = args.pop().unwrap();
@@ -79,7 +79,7 @@ impl<T: Theory> Cnf<T> {
                     clauses.push(Clause(vec![phi1.neg(), phi2.neg(), p.clone()]));
                     (p, clauses)
                 }
-                Expr::Apply(Function::Symbol(op), mut args)
+                Term::Apply(Function::Symbol(op), mut args)
                     if args.len() == 2 && op == T::FunctionSymbol::from(Or) =>
                 {
                     let arg2 = args.pop().unwrap();

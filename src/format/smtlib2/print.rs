@@ -56,24 +56,24 @@ fn sexp_of_params<T: Smtlib2Theory>(params: &Vec<SortedSymbol<T>>) -> Result<Sex
     Ok(Sexp::List(params))
 }
 
-fn sexp_of_expr<T, B>(expr: &Expr<T, B>) -> Result<Sexp, PrintError>
+fn sexp_of_term<T, B>(term: &Term<T, B>) -> Result<Sexp, PrintError>
 where
     T: Smtlib2Theory,
     B: Smtlib2Binder,
 {
-    use Expr::*;
-    match expr {
+    use Term::*;
+    match term {
         Binding(binder, params, box phi) => Ok(Sexp::List(vec![
             B::sexp_of_binder(binder)?,
             sexp_of_params::<T>(params)?,
-            sexp_of_expr(phi)?,
+            sexp_of_term(phi)?,
         ])),
         Apply(fun, args) => {
-            let args: Result<Vec<_>, _> = args.into_iter().map(|arg| sexp_of_expr(arg)).collect();
+            let args: Result<Vec<_>, _> = args.into_iter().map(|arg| sexp_of_term(arg)).collect();
             let mut args = args?;
-            let mut exprs = vec![sexp_of_function::<T>(fun)?];
-            exprs.append(&mut args);
-            Ok(Sexp::List(exprs))
+            let mut terms = vec![sexp_of_function::<T>(fun)?];
+            terms.append(&mut args);
+            Ok(Sexp::List(terms))
         }
         Const(c) => {
             use crate::logic::theory::Const::*;
@@ -117,7 +117,7 @@ fn sexp_of_fundef<T: Smtlib2Theory, B: Smtlib2Binder>(
         util::make_str_atom(def_fun.name.as_str()),
         sexp_of_params::<T>(&def_fun.params)?,
         sexp_of_sort::<T>(&def_fun.ret)?,
-        sexp_of_expr(&def_fun.body)?,
+        sexp_of_term(&def_fun.body)?,
     ]))
 }
 
@@ -129,7 +129,7 @@ fn sexp_of_fundef_rec<T: Smtlib2Theory, B: Smtlib2Binder>(
         util::make_str_atom(def_fun.name.as_str()),
         sexp_of_params::<T>(&def_fun.params)?,
         sexp_of_sort::<T>(&def_fun.ret)?,
-        sexp_of_expr(&def_fun.body)?,
+        sexp_of_term(&def_fun.body)?,
     ]))
 }
 
@@ -144,7 +144,7 @@ fn sexp_of_funsdef_rec<T: Smtlib2Theory, B: Smtlib2Binder>(
             sexp_of_params::<T>(&def_fun.params)?,
             sexp_of_sort::<T>(&def_fun.ret)?,
         ]));
-        terms.push(sexp_of_expr::<T, B>(&def_fun.body)?);
+        terms.push(sexp_of_term::<T, B>(&def_fun.body)?);
     }
     Ok(Sexp::List(vec![
         util::make_str_atom("define-funs-rec"),
@@ -172,11 +172,11 @@ fn sexp_of_define_sort<T: Smtlib2Theory>(
 }
 
 fn sexp_of_assert<T: Smtlib2Theory, B: Smtlib2Binder>(
-    expr: &Expr<T, B>,
+    term: &Term<T, B>,
 ) -> Result<Sexp, PrintError> {
     Ok(Sexp::List(vec![
         util::make_str_atom("assert"),
-        sexp_of_expr(expr)?,
+        sexp_of_term(term)?,
     ]))
 }
 
@@ -320,9 +320,9 @@ fn sexp_of_get_option(str: &String) -> Result<Sexp, PrintError> {
 }
 
 fn sexp_of_get_value<T: Smtlib2Theory, B: Smtlib2Binder>(
-    es: &Vec<Expr<T, B>>,
+    es: &Vec<Term<T, B>>,
 ) -> Result<Sexp, PrintError> {
-    let es: Result<Vec<_>, _> = es.iter().map(|e| sexp_of_expr(e)).collect();
+    let es: Result<Vec<_>, _> = es.iter().map(|e| sexp_of_term(e)).collect();
     let es = es?;
     Ok(Sexp::List(vec![
         util::make_str_atom("get-value"),
@@ -450,7 +450,7 @@ where
         .commands
         .iter()
         .map(|command| match command {
-            Assert(expr) => sexp_of_assert(&expr),
+            Assert(term) => sexp_of_assert(&term),
             CheckSat => sexp_of_string("check-sat"),
             CheckSatAssuming(pos, neg) => sexp_of_check_sat_assuming(pos, neg),
             DeclareConst(sorted_symbol) => sexp_of_declare_const::<T>(sorted_symbol),

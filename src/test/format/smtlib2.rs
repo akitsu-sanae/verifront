@@ -1,5 +1,5 @@
 use crate::format::{smtlib2::*, Format};
-use crate::logic::{binder::*, expr::*, symbol, theory::*};
+use crate::logic::{binder::*, symbol, term::*, theory::*};
 use crate::util;
 use sexp::Sexp;
 
@@ -7,18 +7,18 @@ type FOL = FOLWithTheory<integer::Integer>;
 
 fn check_with_z3<T: Smtlib2Theory, B: Smtlib2Binder>(
     smtlib2: Smtlib2<T, B>,
-    sexpr: Vec<Sexp>,
+    sterm: Vec<Sexp>,
     expected: &str,
 ) {
-    assert_eq!(Smtlib2::<T, B>::print(&smtlib2).unwrap(), sexpr);
+    assert_eq!(Smtlib2::<T, B>::print(&smtlib2).unwrap(), sterm);
 
-    assert_eq!(smtlib2, Smtlib2::<T, B>::parse(&sexpr).unwrap());
+    assert_eq!(smtlib2, Smtlib2::<T, B>::parse(&sterm).unwrap());
 
     use std::io::Write;
 
     let mut file = tempfile::NamedTempFile::new().unwrap();
-    for sexpr in sexpr {
-        writeln!(file, "{}\n", sexpr).unwrap();
+    for sterm in sterm {
+        writeln!(file, "{}\n", sterm).unwrap();
     }
 
     let result = ::std::process::Command::new("z3")

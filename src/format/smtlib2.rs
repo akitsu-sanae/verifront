@@ -1,8 +1,8 @@
 use super::Format;
 use crate::logic::{
     binder::*,
-    expr::*,
     symbol::{self, Symbol},
+    term::*,
     theory::*,
 };
 use sexp::Sexp;
@@ -18,14 +18,14 @@ pub trait Smtlib2Theory: Theory {
     fn sexp_of_function_symbol(fs: &Self::FunctionSymbol) -> Result<Sexp, PrintError>;
     fn sexp_of_const_symbol(c: &Self::ConstSymbol) -> Result<Sexp, PrintError>;
 
-    fn sort_symbol_of_sexp(expr: &Sexp) -> Result<Self::SortSymbol, ParseError>;
-    fn function_symbol_of_sexp(expr: &Sexp) -> Result<Self::FunctionSymbol, ParseError>;
-    fn const_symbol_of_sexp(expr: &Sexp) -> Result<Self::ConstSymbol, ParseError>;
+    fn sort_symbol_of_sexp(term: &Sexp) -> Result<Self::SortSymbol, ParseError>;
+    fn function_symbol_of_sexp(term: &Sexp) -> Result<Self::FunctionSymbol, ParseError>;
+    fn const_symbol_of_sexp(term: &Sexp) -> Result<Self::ConstSymbol, ParseError>;
 }
 
 pub trait Smtlib2Binder: IsBinder + Sized {
     fn sexp_of_binder(&self) -> Result<Sexp, PrintError>;
-    fn binder_of_sexp(expr: &Sexp) -> Result<Self, ParseError>;
+    fn binder_of_sexp(term: &Sexp) -> Result<Self, ParseError>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -59,7 +59,7 @@ pub struct FunDef<T: Smtlib2Theory, B: Smtlib2Binder> {
     pub name: Symbol,
     pub params: Vec<SortedSymbol<T>>,
     pub ret: Sort<T>,
-    pub body: Expr<T, B>,
+    pub body: Term<T, B>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -109,7 +109,7 @@ pub enum InfoFlag {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command<T: Smtlib2Theory, B: Smtlib2Binder> {
     // version 2.6
-    Assert(Expr<T, B>),
+    Assert(Term<T, B>),
     CheckSat,
     CheckSatAssuming(Vec<Symbol>, Vec<Symbol>), // positives and negativs
     DeclareConst(SortedSymbol<T>),
@@ -131,7 +131,7 @@ pub enum Command<T: Smtlib2Theory, B: Smtlib2Binder> {
     GetProof,
     GetUnsatAssumptions,
     GetUnsatCore,
-    GetValue(Vec<Expr<T, B>>),
+    GetValue(Vec<Term<T, B>>),
     Pop(i64),
     Push(i64),
     Reset,
@@ -160,8 +160,8 @@ where
     type PrintError = PrintError;
     type ParseError = ParseError;
 
-    fn print(expr: &Smtlib2<T, B>) -> Result<Vec<Sexp>, PrintError> {
-        print::toplevels(expr)
+    fn print(term: &Smtlib2<T, B>) -> Result<Vec<Sexp>, PrintError> {
+        print::toplevels(term)
     }
 
     fn parse(toplevels: &Vec<Sexp>) -> Result<Smtlib2<T, B>, ParseError> {

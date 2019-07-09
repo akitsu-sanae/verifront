@@ -1,4 +1,4 @@
-use super::{binder::*, expr::*, symbol::Symbol, theory::*};
+use super::{binder::*, symbol::Symbol, term::*, theory::*};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -61,18 +61,18 @@ fn apply_subst<T: Theory>(ret: Sort<T>, subst: Env<T>) -> Result<Sort<T>, String
     }
 }
 
-fn expr_with_env<T: Theory, B: IsBinder>(
-    expr: &Expr<T, B>,
+fn term_with_env<T: Theory, B: IsBinder>(
+    term: &Term<T, B>,
     env: &Env<T>,
 ) -> Result<Sort<T>, String> {
-    match expr {
-        Expr::Binding(_binder, params, expr) => {
+    match term {
+        Term::Binding(_binder, params, term) => {
             let env = env.append(params.clone());
-            expr_with_env(expr, &env)?;
+            term_with_env(term, &env)?;
             Ok(Sort::Symbol(T::SortSymbol::from(boolean::SortSymbol::Bool)))
         }
-        Expr::Apply(f, args) => {
-            let args: Result<Vec<_>, _> = args.iter().map(|arg| expr_with_env(arg, env)).collect();
+        Term::Apply(f, args) => {
+            let args: Result<Vec<_>, _> = args.iter().map(|arg| term_with_env(arg, env)).collect();
             let args = args?;
             match f {
                 Function::Symbol(fs) => {
@@ -85,13 +85,13 @@ fn expr_with_env<T: Theory, B: IsBinder>(
                 Function::Var(symbol) => env.lookup(symbol),
             }
         }
-        Expr::Const(c) => match c {
+        Term::Const(c) => match c {
             Const::Symbol(cs) => Ok(cs.sort()),
             Const::Var(symbol) => env.lookup(symbol),
         },
     }
 }
 
-pub fn expr<T: Theory, B: IsBinder>(expr: &Expr<T, B>) -> Result<Sort<T>, String> {
-    expr_with_env(expr, &Env::new())
+pub fn term<T: Theory, B: IsBinder>(term: &Term<T, B>) -> Result<Sort<T>, String> {
+    term_with_env(term, &Env::new())
 }

@@ -1,13 +1,13 @@
-use crate::logic::{binder::*, expr::*, sortcheck, symbol, theory::*};
+use crate::logic::{binder::*, sortcheck, symbol, term::*, theory::*};
 
-type FOL = crate::logic::expr::FOLWithTheory<integer::Integer>;
+type FOL = crate::logic::term::FOLWithTheory<integer::Integer>;
 
-fn make_var<T: Theory, B: IsBinder>(name: &str) -> Expr<T, B> {
-    Expr::Const(Const::Var(symbol::make(name)))
+fn make_var<T: Theory, B: IsBinder>(name: &str) -> Term<T, B> {
+    Term::Const(Const::Var(symbol::make(name)))
 }
 
-fn check(expr: FOL, sort: Sort<integer::Integer>) {
-    assert_eq!(sortcheck::expr(&expr).unwrap(), sort)
+fn check(term: FOL, sort: Sort<integer::Integer>) {
+    assert_eq!(sortcheck::term(&term).unwrap(), sort)
 }
 
 #[test]

@@ -1,9 +1,9 @@
-use crate::logic::{binder::*, expr::*, symbol, theory::*};
+use crate::logic::{binder::*, symbol, term::*, theory::*};
 
 use super::debug_print_check;
 
-fn make_var<T: Theory, B: IsBinder>(name: &str) -> Expr<T, B> {
-    Expr::Const(Const::Var(symbol::make(name)))
+fn make_var<T: Theory, B: IsBinder>(name: &str) -> Term<T, B> {
+    Term::Const(Const::Var(symbol::make(name)))
 }
 
 #[test]
@@ -53,24 +53,24 @@ fn nnf() {
     // not (forall x. x=1 or x = 2)
     // exists x. not(x=1) and not(x=2)
     assert_eq!(
-        Expr::Binding(
+        Term::Binding(
             Forall,
             vec![(symbol::make("x"), int_sort.clone())],
-            box Expr::Apply(
+            box Term::Apply(
                 make_fun(Or),
                 vec![
-                    Expr::Apply(
+                    Term::Apply(
                         make_fun(Equal),
                         vec![
-                            Expr::Const(Const::Var(symbol::make("x"))),
-                            Expr::Const(Const::Symbol(Number(1))),
+                            Term::Const(Const::Var(symbol::make("x"))),
+                            Term::Const(Const::Symbol(Number(1))),
                         ]
                     ),
-                    Expr::Apply(
+                    Term::Apply(
                         make_fun(Equal),
                         vec![
-                            Expr::Const(Const::Var(symbol::make("x"))),
-                            Expr::Const(Const::Symbol(Number(2))),
+                            Term::Const(Const::Var(symbol::make("x"))),
+                            Term::Const(Const::Symbol(Number(2))),
                         ]
                     ),
                 ]
@@ -78,25 +78,25 @@ fn nnf() {
         )
         .neg()
         .to_nnf(),
-        Expr::Binding(
+        Term::Binding(
             Exists,
             vec![(symbol::make("x"), int_sort.clone())],
-            box Expr::Apply(
+            box Term::Apply(
                 make_fun(And),
                 vec![
-                    Expr::Apply(
+                    Term::Apply(
                         make_fun(Equal),
                         vec![
-                            Expr::Const(Const::Var(symbol::make("x"))),
-                            Expr::Const(Const::Symbol(Number(1))),
+                            Term::Const(Const::Var(symbol::make("x"))),
+                            Term::Const(Const::Symbol(Number(1))),
                         ]
                     )
                     .neg(),
-                    Expr::Apply(
+                    Term::Apply(
                         make_fun(Equal),
                         vec![
-                            Expr::Const(Const::Var(symbol::make("x"))),
-                            Expr::Const(Const::Symbol(Number(2))),
+                            Term::Const(Const::Var(symbol::make("x"))),
+                            Term::Const(Const::Symbol(Number(2))),
                         ]
                     )
                     .neg()
@@ -108,24 +108,24 @@ fn nnf() {
     // forall x. not (x=1 or not(x=2))
     // forall x. not(x=1) and x=2
     assert_eq!(
-        Expr::Binding(
+        Term::Binding(
             Forall,
             vec![(symbol::make("x"), int_sort.clone())],
-            box Expr::Apply(
+            box Term::Apply(
                 make_fun(Or),
                 vec![
-                    Expr::Apply(
+                    Term::Apply(
                         make_fun(Equal),
                         vec![
-                            Expr::Const(Const::Var(symbol::make("x"))),
-                            Expr::Const(Const::Symbol(Number(1))),
+                            Term::Const(Const::Var(symbol::make("x"))),
+                            Term::Const(Const::Symbol(Number(1))),
                         ]
                     ),
-                    Expr::Apply(
+                    Term::Apply(
                         make_fun(Equal),
                         vec![
-                            Expr::Const(Const::Var(symbol::make("x"))),
-                            Expr::Const(Const::Symbol(Number(2))),
+                            Term::Const(Const::Var(symbol::make("x"))),
+                            Term::Const(Const::Symbol(Number(2))),
                         ]
                     )
                     .neg(),
@@ -134,25 +134,25 @@ fn nnf() {
             .neg()
         )
         .to_nnf(),
-        Expr::Binding(
+        Term::Binding(
             Forall,
             vec![(symbol::make("x"), int_sort.clone())],
-            box Expr::Apply(
+            box Term::Apply(
                 make_fun(And),
                 vec![
-                    Expr::Apply(
+                    Term::Apply(
                         make_fun(Equal),
                         vec![
-                            Expr::Const(Const::Var(symbol::make("x"))),
-                            Expr::Const(Const::Symbol(Number(1))),
+                            Term::Const(Const::Var(symbol::make("x"))),
+                            Term::Const(Const::Symbol(Number(1))),
                         ]
                     )
                     .neg(),
-                    Expr::Apply(
+                    Term::Apply(
                         make_fun(Equal),
                         vec![
-                            Expr::Const(Const::Var(symbol::make("x"))),
-                            Expr::Const(Const::Symbol(Number(2))),
+                            Term::Const(Const::Var(symbol::make("x"))),
+                            Term::Const(Const::Symbol(Number(2))),
                         ]
                     )
                 ]

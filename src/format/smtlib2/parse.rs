@@ -240,7 +240,7 @@ fn fun_defs_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(
             [Sexp::Atom(Atom::S(name)), params, ret_sort] => {
                 let params = params_of_sexp::<T, B>(params)?;
                 let ret_sort = sort_of_sexp::<T>(ret_sort)?;
-                let term = expr_of_sexp::<T, B>(term)?;
+                let term = term_of_sexp::<T, B>(term)?;
                 fun_defs.push(FunDef {
                     name: name.clone(),
                     params: params,
@@ -254,40 +254,40 @@ fn fun_defs_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(
     Ok(fun_defs)
 }
 
-fn expr_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(sexp: &Sexp) -> Result<Expr<T, B>, ParseError> {
+fn term_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(sexp: &Sexp) -> Result<Term<T, B>, ParseError> {
     match sexp {
         Sexp::List(sexps) => match sexps.as_slice() {
             [head, tail..] => {
                 if let Ok(binder) = B::binder_of_sexp(head) {
                     match tail {
-                        [params, expr] => {
+                        [params, term] => {
                             let params = params_of_sexp::<T, B>(params)?;
-                            let expr = expr_of_sexp(expr)?;
-                            Ok(Expr::Binding(binder, params, box expr))
+                            let term = term_of_sexp(term)?;
+                            Ok(Term::Binding(binder, params, box term))
                         }
                         _ => Err(ParseError::InvalidSexp("binding", sexp.clone())),
                     }
                 } else if let Ok(fun) = function_of_sexp::<T, B>(head) {
-                    let args: Result<_, _> = tail.iter().map(|arg| expr_of_sexp(arg)).collect();
+                    let args: Result<_, _> = tail.iter().map(|arg| term_of_sexp(arg)).collect();
                     let args = args?;
                     use boolean::FunctionSymbol::{And, Or};
                     if fun == Function::Symbol(T::FunctionSymbol::from(And)) {
-                        Ok(Expr::and_of(args))
+                        Ok(Term::and_of(args))
                     } else if fun == Function::Symbol(T::FunctionSymbol::from(Or)) {
-                        Ok(Expr::or_of(args))
+                        Ok(Term::or_of(args))
                     } else {
-                        Ok(Expr::Apply(fun, args))
+                        Ok(Term::Apply(fun, args))
                     }
                 } else {
-                    Ok(Expr::Const(const_of_sexp::<T, B>(sexp)?))
+                    Ok(Term::Const(const_of_sexp::<T, B>(sexp)?))
                 }
             }
-            _ => Err(ParseError::InvalidSexp("expr", Sexp::List(sexps.to_vec()))),
+            _ => Err(ParseError::InvalidSexp("term", Sexp::List(sexps.to_vec()))),
         },
-        Sexp::Atom(atom) => Ok(Expr::Const(
+        Sexp::Atom(atom) => Ok(Term::Const(
             const_of_sexp::<T, B>(&Sexp::Atom(atom.clone())).or_else(|_| match atom {
                 Atom::S(name) => Ok(Const::Var(symbol::make(name))),
-                _ => Err(ParseError::InvalidSexp("expr", Sexp::Atom(atom.clone()))),
+                _ => Err(ParseError::InvalidSexp("term", Sexp::Atom(atom.clone()))),
             })?,
         )),
     }
@@ -425,8 +425,8 @@ where
     for toplevel in toplevels {
         let cmd = if let Sexp::List(toplevel) = toplevel {
             match toplevel.as_slice() {
-                [Sexp::Atom(Atom::S(head)), expr] if head.as_str() == "assert" => {
-                    Command::Assert(expr_of_sexp(expr)?)
+                [Sexp::Atom(Atom::S(head)), term] if head.as_str() == "assert" => {
+                    Command::Assert(term_of_sexp(term)?)
                 }
                 [Sexp::Atom(Atom::S(head))] if head.as_str() == "check-sat" => Command::CheckSat,
                 [Sexp::Atom(Atom::S(head)), body] if head.as_str() == "check-sat-assuming" => {
@@ -478,30 +478,30 @@ where
                 {
                     Command::DeclareSort(symbol.clone(), *n)
                 }
-                [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(name)), params, sort, expr]
+                [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(name)), params, sort, term]
                     if head.as_str() == "define-fun" =>
                 {
                     let params = params_of_sexp::<T, B>(params)?;
                     let sort = sort_of_sexp::<T>(sort)?;
-                    let expr = expr_of_sexp(expr)?;
+                    let term = term_of_sexp(term)?;
                     Command::DefineFun(FunDef {
                         name: name.to_string(),
                         params: params,
                         ret: sort,
-                        body: expr,
+                        body: term,
                     })
                 }
-                [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(name)), params, sort, expr]
+                [Sexp::Atom(Atom::S(head)), Sexp::Atom(Atom::S(name)), params, sort, term]
                     if head.as_str() == "define-fun-rec" =>
                 {
                     let params = params_of_sexp::<T, B>(params)?;
                     let sort = sort_of_sexp::<T>(sort)?;
-                    let expr = expr_of_sexp(expr)?;
+                    let term = term_of_sexp(term)?;
                     Command::DefineFunRec(FunDef {
                         name: name.to_string(),
                         params: params,
                         ret: sort,
-                        body: expr,
+                        body: term,
                     })
                 }
                 [Sexp::Atom(Atom::S(head)), Sexp::List(fun_decs), Sexp::List(terms)]
@@ -557,7 +557,7 @@ where
                     Command::GetUnsatCore
                 }
                 [Sexp::Atom(Atom::S(head)), Sexp::List(es)] if head.as_str() == "get-value" => {
-                    let es: Result<Vec<_>, _> = es.iter().map(|e| expr_of_sexp(e)).collect();
+                    let es: Result<Vec<_>, _> = es.iter().map(|e| term_of_sexp(e)).collect();
                     let es = es?;
                     Command::GetValue(es)
                 }

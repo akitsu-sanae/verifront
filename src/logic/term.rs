@@ -1,37 +1,37 @@
 use crate::logic::{binder::*, symbol::Symbol, theory::*};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Expr<T: Theory, B: IsBinder> {
-    Binding(B, Vec<(Symbol, Sort<T>)>, Box<Expr<T, B>>),
-    Apply(Function<T>, Vec<Expr<T, B>>),
+pub enum Term<T: Theory, B: IsBinder> {
+    Binding(B, Vec<(Symbol, Sort<T>)>, Box<Term<T, B>>),
+    Apply(Function<T>, Vec<Term<T, B>>),
     Const(Const<T>),
 }
 
-impl<T: Theory> From<Expr<T, EmptyBinder>> for Expr<T, Quantifier> {
-    fn from(phi: Expr<T, EmptyBinder>) -> Self {
+impl<T: Theory> From<Term<T, EmptyBinder>> for Term<T, Quantifier> {
+    fn from(phi: Term<T, EmptyBinder>) -> Self {
         match phi {
-            Expr::Binding(_, _, _) => unreachable!(),
-            Expr::Apply(f, args) => {
+            Term::Binding(_, _, _) => unreachable!(),
+            Term::Apply(f, args) => {
                 let args = args.into_iter().map(|arg| Self::from(arg)).collect();
-                Expr::Apply(f, args)
+                Term::Apply(f, args)
             }
-            Expr::Const(c) => Expr::Const(c),
+            Term::Const(c) => Term::Const(c),
         }
     }
 }
 
-impl<T: Theory, B: IsBinder> Expr<T, B> {
+impl<T: Theory, B: IsBinder> Term<T, B> {
     fn acc(mut exprs: Vec<Self>, op: boolean::FunctionSymbol) -> Self {
         use boolean::ConstSymbol::True;
         if let Some(hd) = exprs.pop() {
             exprs.into_iter().fold(hd, |acc, expr| {
-                Expr::Apply(
+                Term::Apply(
                     Function::Symbol(T::FunctionSymbol::from(op)),
                     vec![acc, expr],
                 )
             })
         } else {
-            Expr::Const(Const::Symbol(T::ConstSymbol::from(True)))
+            Term::Const(Const::Symbol(T::ConstSymbol::from(True)))
         }
     }
 
@@ -43,15 +43,15 @@ impl<T: Theory, B: IsBinder> Expr<T, B> {
     }
 }
 
-impl<T: Theory> Expr<T, Quantifier> {
+impl<T: Theory> Term<T, Quantifier> {
     pub fn neg(self) -> Self {
         use boolean::FunctionSymbol::*;
-        Expr::Apply(Function::Symbol(T::FunctionSymbol::from(Not)), vec![self])
+        Term::Apply(Function::Symbol(T::FunctionSymbol::from(Not)), vec![self])
     }
 
     pub fn to_nnf(self) -> Self {
         use boolean::FunctionSymbol::*;
-        use Expr::*;
+        use Term::*;
         match self {
             Binding(q, bounds, box inner) => Binding(q, bounds, box inner.to_nnf()),
             Apply(Function::Symbol(op), mut args) => {
@@ -109,13 +109,13 @@ impl<T: Theory> Expr<T, Quantifier> {
     }
 }
 
-impl<T: Theory> Expr<T, EmptyBinder> {
+impl<T: Theory> Term<T, EmptyBinder> {
     pub fn to_cnf(self) -> super::cnf::Cnf<T> {
         super::cnf::Cnf::from_formula(self)
     }
 }
 
-pub type ProposWithTheory<T> = Expr<T, EmptyBinder>;
+pub type ProposWithTheory<T> = Term<T, EmptyBinder>;
 pub type Propos = ProposWithTheory<boolean::Boolean>;
-pub type FOLWithTheory<T> = Expr<T, Quantifier>;
+pub type FOLWithTheory<T> = Term<T, Quantifier>;
 pub type FOL = FOLWithTheory<boolean::Boolean>;
