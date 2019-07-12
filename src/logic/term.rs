@@ -5,6 +5,7 @@ pub enum Term<T: Theory, B: IsBinder> {
     Binding(B, Vec<(Symbol, Sort<T>)>, Box<Term<T, B>>),
     Apply(Function<T>, Vec<Term<T, B>>),
     Const(Const<T>),
+    Let(Symbol, Box<Term<T, B>>, Box<Term<T, B>>),
 }
 
 impl<T: Theory> From<Term<T, EmptyBinder>> for Term<T, Quantifier> {
@@ -16,6 +17,9 @@ impl<T: Theory> From<Term<T, EmptyBinder>> for Term<T, Quantifier> {
                 Term::Apply(f, args)
             }
             Term::Const(c) => Term::Const(c),
+            Term::Let(name, box init, box body) => {
+                Term::Let(name, box Self::from(init), box Self::from(body))
+            }
         }
     }
 }
@@ -61,6 +65,14 @@ impl<T: Theory, B: IsBinder> Term<T, B> {
             }
             Term::Const(Const::Var(ref name_)) if name == name_.as_str() => val,
             Term::Const(c) => Term::Const(c),
+            Term::Let(name_, box init, box body) => {
+                let (init, body) = if name == name_.as_str() {
+                    (init.subst(name, val), body)
+                } else {
+                    (init.subst(name, val.clone()), body.subst(name, val))
+                };
+                Term::Let(name_, box init, box body)
+            }
         }
     }
 }

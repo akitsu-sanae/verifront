@@ -82,6 +82,14 @@ where
                 Var(ident) => util::make_str_atom(ident),
             })
         }
+        Let(name, box init, box body) => Ok(Sexp::List(vec![
+            util::make_str_atom("let"),
+            Sexp::List(vec![Sexp::List(vec![
+                util::make_str_atom(name),
+                sexp_of_term(init)?,
+            ])]),
+            sexp_of_term(body)?,
+        ])),
     }
 }
 

@@ -89,6 +89,11 @@ fn term_with_env<T: Theory, B: IsBinder>(
             Const::Symbol(cs) => Ok(cs.sort()),
             Const::Var(symbol) => env.lookup(symbol),
         },
+        Term::Let(name, box init, box body) => {
+            let init_sort = term_with_env(init, env)?;
+            let env = env.append(vec![(name.clone(), init_sort)]);
+            term_with_env(body, &env)
+        }
     }
 }
 

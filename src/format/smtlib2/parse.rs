@@ -258,7 +258,36 @@ fn term_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(sexp: &Sexp) -> Result<Term<
     match sexp {
         Sexp::List(sexps) => match sexps.as_slice() {
             [head, tail..] => {
-                if let Ok(binder) = B::binder_of_sexp(head) {
+                if head == &util::make_str_atom("let") {
+                    match tail {
+                        [Sexp::List(bounds), body] => {
+                            let bounds: Result<Vec<_>, _> = bounds
+                                .into_iter()
+                                .map(|bound| {
+                                    if let Sexp::List(bound) = bound {
+                                        match bound.as_slice() {
+                                            [Sexp::Atom(Atom::S(name)), init] => {
+                                                Ok((name.clone(), term_of_sexp(init)?))
+                                            }
+                                            x => Err(ParseError::InvalidSexp(
+                                                "let-bound",
+                                                Sexp::List(x.to_vec()),
+                                            )),
+                                        }
+                                    } else {
+                                        Err(ParseError::InvalidSexp("let-bound", bound.clone()))
+                                    }
+                                })
+                                .collect();
+                            let bounds = bounds?;
+                            let body = term_of_sexp(body)?;
+                            Ok(bounds
+                                .into_iter()
+                                .fold(body, |acc, (name, init)| Term::Let(name, box init, box acc)))
+                        }
+                        _ => Err(ParseError::InvalidSexp("let", sexp.clone())),
+                    }
+                } else if let Ok(binder) = B::binder_of_sexp(head) {
                     match tail {
                         [params, term] => {
                             let params = params_of_sexp::<T, B>(params)?;
