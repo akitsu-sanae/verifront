@@ -336,7 +336,7 @@ fn sexp_to_bool(str: &String) -> Result<bool, ParseError> {
     Ok(match str.as_str() {
         "true" => true,
         "false" => false,
-        e => return Err(ParseError::InvalidSexp("bool", util::make_str_atom(e))),
+        t => return Err(ParseError::InvalidSexp("bool", util::make_str_atom(t))),
     })
 }
 

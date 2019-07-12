@@ -93,20 +93,20 @@ impl Smtlib2Theory for Boolean {
         })
     }
 
-    fn sort_symbol_of_sexp(expr: &Sexp) -> Result<SortSymbol, ParseError> {
-        if let Sexp::Atom(Atom::S(str)) = expr {
+    fn sort_symbol_of_sexp(term: &Sexp) -> Result<SortSymbol, ParseError> {
+        if let Sexp::Atom(Atom::S(str)) = term {
             match str.as_str() {
                 "Bool" => Ok(SortSymbol::Bool),
                 s => Err(ParseError::UnknownSortSymbol(s.to_string())),
             }
         } else {
-            Err(ParseError::InvalidSexp("sort symbol", expr.clone()))
+            Err(ParseError::InvalidSexp("sort symbol", term.clone()))
         }
     }
 
-    fn function_symbol_of_sexp(expr: &Sexp) -> Result<FunctionSymbol, ParseError> {
+    fn function_symbol_of_sexp(term: &Sexp) -> Result<FunctionSymbol, ParseError> {
         use FunctionSymbol::*;
-        if let Sexp::Atom(Atom::S(str)) = expr {
+        if let Sexp::Atom(Atom::S(str)) = term {
             match str.as_str() {
                 "not" => Ok(Not),
                 "and" => Ok(And),
@@ -117,17 +117,17 @@ impl Smtlib2Theory for Boolean {
                 str => Err(ParseError::UnknownFunctionSymbol(str.to_string())),
             }
         } else {
-            Err(ParseError::InvalidSexp("function symbol", expr.clone()))
+            Err(ParseError::InvalidSexp("function symbol", term.clone()))
         }
     }
 
-    fn const_symbol_of_sexp(expr: &Sexp) -> Result<ConstSymbol, ParseError> {
-        if expr == &util::make_str_atom("true") {
+    fn const_symbol_of_sexp(term: &Sexp) -> Result<ConstSymbol, ParseError> {
+        if term == &util::make_str_atom("true") {
             Ok(ConstSymbol::True)
-        } else if expr == &util::make_str_atom("false") {
+        } else if term == &util::make_str_atom("false") {
             Ok(ConstSymbol::False)
         } else {
-            Err(ParseError::InvalidSexp("const symbol", expr.clone()))
+            Err(ParseError::InvalidSexp("const symbol", term.clone()))
         }
     }
 }

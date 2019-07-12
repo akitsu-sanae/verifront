@@ -21,13 +21,13 @@ impl<T: Theory> From<Term<T, EmptyBinder>> for Term<T, Quantifier> {
 }
 
 impl<T: Theory, B: IsBinder> Term<T, B> {
-    fn acc(mut exprs: Vec<Self>, op: boolean::FunctionSymbol) -> Self {
+    fn acc(mut terms: Vec<Self>, op: boolean::FunctionSymbol) -> Self {
         use boolean::ConstSymbol::True;
-        if let Some(hd) = exprs.pop() {
-            exprs.into_iter().fold(hd, |acc, expr| {
+        if let Some(hd) = terms.pop() {
+            terms.into_iter().fold(hd, |acc, term| {
                 Term::Apply(
                     Function::Symbol(T::FunctionSymbol::from(op)),
-                    vec![acc, expr],
+                    vec![acc, term],
                 )
             })
         } else {
@@ -35,11 +35,11 @@ impl<T: Theory, B: IsBinder> Term<T, B> {
         }
     }
 
-    pub fn and_of(exprs: Vec<Self>) -> Self {
-        Self::acc(exprs, boolean::FunctionSymbol::And)
+    pub fn and_of(terms: Vec<Self>) -> Self {
+        Self::acc(terms, boolean::FunctionSymbol::And)
     }
-    pub fn or_of(exprs: Vec<Self>) -> Self {
-        Self::acc(exprs, boolean::FunctionSymbol::Or)
+    pub fn or_of(terms: Vec<Self>) -> Self {
+        Self::acc(terms, boolean::FunctionSymbol::Or)
     }
 }
 

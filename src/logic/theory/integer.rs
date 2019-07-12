@@ -148,22 +148,22 @@ impl Smtlib2Theory for Integer {
         }
     }
 
-    fn sort_symbol_of_sexp(expr: &Sexp) -> Result<SortSymbol, ParseError> {
+    fn sort_symbol_of_sexp(term: &Sexp) -> Result<SortSymbol, ParseError> {
         use SortSymbol::*;
-        if let Sexp::Atom(Atom::S(str)) = expr {
+        if let Sexp::Atom(Atom::S(str)) = term {
             match str.as_str() {
                 "Bool" => Ok(Bool),
                 "Int" => Ok(Int),
                 s => Err(ParseError::UnknownSortSymbol(s.to_string())),
             }
         } else {
-            Err(ParseError::InvalidSexp("sort symbol", expr.clone()))
+            Err(ParseError::InvalidSexp("sort symbol", term.clone()))
         }
     }
 
-    fn function_symbol_of_sexp(expr: &Sexp) -> Result<FunctionSymbol, ParseError> {
+    fn function_symbol_of_sexp(term: &Sexp) -> Result<FunctionSymbol, ParseError> {
         use FunctionSymbol::*;
-        let int_fun = if let Sexp::Atom(Atom::S(str)) = expr {
+        let int_fun = if let Sexp::Atom(Atom::S(str)) = term {
             match str.as_str() {
                 "+" => Ok(Add),
                 "-" => Ok(Sub),
@@ -176,20 +176,20 @@ impl Smtlib2Theory for Integer {
                 s => Err(ParseError::UnknownFunctionSymbol(s.to_string())),
             }
         } else {
-            Err(ParseError::InvalidSexp("function symbol", expr.clone()))
+            Err(ParseError::InvalidSexp("function symbol", term.clone()))
         };
-        int_fun.or_else(|_| match boolean::Boolean::function_symbol_of_sexp(expr) {
+        int_fun.or_else(|_| match boolean::Boolean::function_symbol_of_sexp(term) {
             Ok(bf) => Ok(FunctionSymbol::from(bf)),
             Err(err) => Err(err),
         })
     }
 
-    fn const_symbol_of_sexp(expr: &Sexp) -> Result<ConstSymbol, ParseError> {
+    fn const_symbol_of_sexp(term: &Sexp) -> Result<ConstSymbol, ParseError> {
         use ConstSymbol::*;
-        if let Sexp::Atom(Atom::I(n)) = expr {
+        if let Sexp::Atom(Atom::I(n)) = term {
             Ok(Number(*n))
         } else {
-            match boolean::Boolean::const_symbol_of_sexp(expr) {
+            match boolean::Boolean::const_symbol_of_sexp(term) {
                 Ok(bc) => Ok(Boolean(bc)),
                 Err(err) => Err(err),
             }
