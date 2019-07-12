@@ -3,7 +3,7 @@ use crate::util;
 use sexp::{Atom, Sexp};
 
 use std::fmt::Debug;
-pub trait IsBinder: Debug + Eq {}
+pub trait IsBinder: Debug + Eq + Clone {}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EmptyBinder {}

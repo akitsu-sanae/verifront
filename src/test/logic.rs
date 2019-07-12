@@ -6,6 +6,84 @@ fn make_var<T: Theory, B: IsBinder>(name: &str) -> Term<T, B> {
     Term::Const(Const::Var(symbol::make(name)))
 }
 
+fn make_true() -> Propos {
+    use crate::logic::theory::boolean::ConstSymbol::True;
+    Propos::Const(Const::Symbol(True))
+}
+
+fn make_integer(n: i64) -> FOLWithTheory<integer::Integer> {
+    use integer::ConstSymbol::Number;
+    Term::Const(Const::Symbol(Number(n)))
+}
+
+#[test]
+fn subst() {
+    use crate::logic::theory::boolean::{ConstSymbol::*, FunctionSymbol::*};
+
+    // x[true/x] = true
+    assert_eq!(
+        make_var("x").subst("x", Propos::Const(Const::Symbol(True))),
+        make_true()
+    );
+
+    // (x and x)[true/x] = (true and true)
+    assert_eq!(
+        Propos::and_of(vec![make_var("x"), make_var("x"),]).subst("x", make_true()),
+        Propos::and_of(vec![make_true(), make_true(),])
+    );
+
+    use crate::logic::theory::integer::{FunctionSymbol::*, SortSymbol::*};
+    // (forall (x, y). x + y + z = 0)[42/y][12/z] = (forall (x, y). x + y + 12 = 0)
+    type FOL = FOLWithTheory<integer::Integer>;
+    assert_eq!(
+        FOL::Binding(
+            Quantifier::Forall,
+            vec![
+                (symbol::make("x"), Sort::Symbol(Int)),
+                (symbol::make("y"), Sort::Symbol(Int))
+            ],
+            box FOL::Apply(
+                Function::Symbol(integer::FunctionSymbol::from(Equal)),
+                vec![
+                    FOL::Apply(
+                        Function::Symbol(Add),
+                        vec![
+                            make_var("x"),
+                            FOL::Apply(Function::Symbol(Add), vec![make_var("y"), make_var("z")])
+                        ]
+                    ),
+                    make_integer(0),
+                ]
+            )
+        )
+        .subst("y", make_integer(42))
+        .subst("z", make_integer(12)),
+        FOL::Binding(
+            Quantifier::Forall,
+            vec![
+                (symbol::make("x"), Sort::Symbol(Int)),
+                (symbol::make("y"), Sort::Symbol(Int))
+            ],
+            box FOL::Apply(
+                Function::Symbol(integer::FunctionSymbol::from(Equal)),
+                vec![
+                    FOL::Apply(
+                        Function::Symbol(Add),
+                        vec![
+                            make_var("x"),
+                            FOL::Apply(
+                                Function::Symbol(Add),
+                                vec![make_var("y"), make_integer(12)]
+                            )
+                        ]
+                    ),
+                    make_integer(0),
+                ]
+            )
+        )
+    );
+}
+
 #[test]
 fn theory() {
     use crate::logic::theory::boolean::{ConstSymbol::*, FunctionSymbol::*, SortSymbol::*};

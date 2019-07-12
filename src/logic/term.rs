@@ -41,6 +41,28 @@ impl<T: Theory, B: IsBinder> Term<T, B> {
     pub fn or_of(terms: Vec<Self>) -> Self {
         Self::acc(terms, boolean::FunctionSymbol::Or)
     }
+
+    pub fn subst(self, name: &str, val: Self) -> Self {
+        match self {
+            Term::Binding(binder, params, box body) => {
+                let body = if params.iter().any(|&(ref param, _)| param == name) {
+                    body
+                } else {
+                    body.subst(name, val)
+                };
+                Term::Binding(binder, params, box body)
+            }
+            Term::Apply(f, args) => {
+                let args = args
+                    .into_iter()
+                    .map(|arg| arg.subst(name, val.clone()))
+                    .collect();
+                Term::Apply(f, args)
+            }
+            Term::Const(Const::Var(ref name_)) if name == name_.as_str() => val,
+            Term::Const(c) => Term::Const(c),
+        }
+    }
 }
 
 impl<T: Theory> Term<T, Quantifier> {
