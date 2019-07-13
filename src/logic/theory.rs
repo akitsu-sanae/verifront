@@ -1,5 +1,6 @@
 pub mod boolean;
 pub mod integer;
+pub mod smtlib;
 
 use std::fmt::Debug;
 
