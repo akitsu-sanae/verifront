@@ -46,6 +46,19 @@ impl<T: Theory, B: IsBinder> Term<T, B> {
         Self::acc(terms, boolean::FunctionSymbol::Or)
     }
 
+    pub fn remove_let(self) -> Self {
+        use Term::*;
+        match self {
+            Binding(q, bounds, box inner) => Binding(q, bounds, box inner.remove_let()),
+            Apply(f, args) => {
+                let args = args.into_iter().map(Self::remove_let).collect();
+                Apply(f, args)
+            }
+            Const(c) => Const(c),
+            Let(name, box init, box body) => body.subst(name.as_str(), init),
+        }
+    }
+
     pub fn subst(self, name: &str, val: Self) -> Self {
         match self {
             Term::Binding(binder, params, box body) => {
@@ -82,64 +95,71 @@ impl<T: Theory> Term<T, Quantifier> {
         use boolean::FunctionSymbol::*;
         Term::Apply(Function::Symbol(T::FunctionSymbol::from(Not)), vec![self])
     }
-
     pub fn to_nnf(self) -> Self {
         use boolean::FunctionSymbol::*;
         use Term::*;
-        match self {
-            Binding(q, bounds, box inner) => Binding(q, bounds, box inner.to_nnf()),
-            Apply(Function::Symbol(op), mut args) => {
-                if op == T::FunctionSymbol::from(Not) {
-                    let arg = args.pop().unwrap();
-                    match arg {
-                        Binding(op, bounds, box inner) => {
-                            Binding(op.flip(), bounds, box inner.neg().to_nnf())
+        fn aux<T: Theory>(term: Term<T, Quantifier>) -> Term<T, Quantifier> {
+            match term {
+                Let(_, _, _) => unreachable!(),
+                Binding(q, bounds, box inner) => Binding(q, bounds, box inner.to_nnf()),
+                Apply(Function::Symbol(op), mut args) => {
+                    if op == T::FunctionSymbol::from(Not) {
+                        let arg = args.pop().unwrap();
+                        match arg {
+                            Binding(op, bounds, box inner) => {
+                                Binding(op.flip(), bounds, box inner.neg().to_nnf())
+                            }
+                            Apply(Function::Symbol(op), mut args)
+                                if op.clone() == T::FunctionSymbol::from(Not) =>
+                            {
+                                args.pop().unwrap()
+                            }
+                            Apply(Function::Symbol(op), mut args)
+                                if op.clone() == T::FunctionSymbol::from(And) =>
+                            {
+                                let rhs = args.pop().unwrap();
+                                let lhs = args.pop().unwrap();
+                                Apply(
+                                    Function::Symbol(T::FunctionSymbol::from(Or)),
+                                    vec![lhs.neg().to_nnf(), rhs.neg().to_nnf()],
+                                )
+                            }
+                            Apply(Function::Symbol(op), mut args)
+                                if op.clone() == T::FunctionSymbol::from(Or) =>
+                            {
+                                let rhs = args.pop().unwrap();
+                                let lhs = args.pop().unwrap();
+                                Apply(
+                                    Function::Symbol(T::FunctionSymbol::from(And)),
+                                    vec![lhs.neg().to_nnf(), rhs.neg().to_nnf()],
+                                )
+                            }
+                            Apply(Function::Symbol(op), mut args)
+                                if op.clone() == T::FunctionSymbol::from(Imply) =>
+                            {
+                                // not(lhs => rhs) = lhs and (not rhs)
+                                let rhs = args.pop().unwrap();
+                                let lhs = args.pop().unwrap();
+                                Apply(
+                                    Function::Symbol(T::FunctionSymbol::from(And)),
+                                    vec![lhs.to_nnf(), rhs.neg().to_nnf()],
+                                )
+                            }
+                            e => e.neg(),
                         }
-                        Apply(Function::Symbol(op), mut args)
-                            if op.clone() == T::FunctionSymbol::from(Not) =>
-                        {
-                            args.pop().unwrap()
-                        }
-                        Apply(Function::Symbol(op), mut args)
-                            if op.clone() == T::FunctionSymbol::from(And) =>
-                        {
-                            let rhs = args.pop().unwrap();
-                            let lhs = args.pop().unwrap();
-                            Apply(
-                                Function::Symbol(T::FunctionSymbol::from(Or)),
-                                vec![lhs.neg().to_nnf(), rhs.neg().to_nnf()],
-                            )
-                        }
-                        Apply(Function::Symbol(op), mut args)
-                            if op.clone() == T::FunctionSymbol::from(Or) =>
-                        {
-                            let rhs = args.pop().unwrap();
-                            let lhs = args.pop().unwrap();
-                            Apply(
-                                Function::Symbol(T::FunctionSymbol::from(And)),
-                                vec![lhs.neg().to_nnf(), rhs.neg().to_nnf()],
-                            )
-                        }
-                        Apply(Function::Symbol(op), mut args)
-                            if op.clone() == T::FunctionSymbol::from(Imply) =>
-                        {
-                            // not(lhs => rhs) = lhs and (not rhs)
-                            let rhs = args.pop().unwrap();
-                            let lhs = args.pop().unwrap();
-                            Apply(
-                                Function::Symbol(T::FunctionSymbol::from(And)),
-                                vec![lhs.to_nnf(), rhs.neg().to_nnf()],
-                            )
-                        }
-                        e => e.neg(),
+                    } else {
+                        let args = args
+                            .into_iter()
+                            .map(Term::<T, Quantifier>::to_nnf)
+                            .collect();
+                        Apply(Function::Symbol(op), args)
                     }
-                } else {
-                    let args = args.into_iter().map(Self::to_nnf).collect();
-                    Apply(Function::Symbol(op), args)
                 }
+                Apply(f, args) => Apply(f, args),
+                Const(c) => Const(c),
             }
-            e => e,
         }
+        aux(self.remove_let())
     }
 }
 

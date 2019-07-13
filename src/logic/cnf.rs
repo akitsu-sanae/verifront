@@ -59,6 +59,7 @@ impl<T: Theory> Cnf<T> {
         ) -> (Literal<T>, Vec<Clause<T>>) {
             match phi {
                 Term::Binding(_, _, _) => unreachable!(),
+                Term::Let(_, _, _) => unreachable!(),
                 Term::Apply(Function::Symbol(op), mut args)
                     if args.len() == 1 && op == T::FunctionSymbol::from(Not) =>
                 {
@@ -95,6 +96,7 @@ impl<T: Theory> Cnf<T> {
                 phi => (Literal::make(Atom(phi)), clauses),
             }
         }
+        let phi = phi.remove_let();
         let (phi, mut clauses) = aux(phi, vec![]);
         clauses.push(Clause(vec![phi]));
         Cnf(clauses)
