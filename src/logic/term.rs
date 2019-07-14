@@ -96,6 +96,40 @@ impl<T: Theory, B: IsBinder> Term<T, B> {
         }
     }
 
+    pub fn subst_fun(self, name: &str, val: Function<T, B>) -> Self {
+        match self {
+            Term::Binding(binder, params, box body) => {
+                let body = body.subst_fun(name, val);
+                Term::Binding(binder, params, box body)
+            }
+            Term::Apply(f, args) => {
+                let args: Vec<Self> = args
+                    .into_iter()
+                    .map(|arg| arg.subst_fun(name, val.clone()))
+                    .collect();
+                match f {
+                    Function::Var(sym) if name == sym.as_str() => match val {
+                        Function::Definition(params, box body) => {
+                            let subst: Vec<(String, Term<T, B>)> =
+                                params.into_iter().zip(args.into_iter()).collect();
+                            subst
+                                .into_iter()
+                                .fold(body, |acc, (name, arg)| acc.subst_term(name.as_str(), arg))
+                        }
+                        f => Term::Apply(f, args),
+                    },
+                    f => Term::Apply(f, args),
+                }
+            }
+            Term::Const(c) => Term::Const(c),
+            Term::Let(name_, box init, box body) => Term::Let(
+                name_,
+                box init.subst_fun(name, val.clone()),
+                box body.subst_fun(name, val),
+            ),
+        }
+    }
+
     pub fn subst_term(self, name: &str, val: Self) -> Self {
         match self {
             Term::Binding(binder, params, box body) => {

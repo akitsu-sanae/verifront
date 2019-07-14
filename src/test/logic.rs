@@ -238,3 +238,56 @@ fn nnf() {
         )
     );
 }
+
+#[test]
+fn subst_fun() {
+    // (f (x, y))[+/f] = x + y
+    assert_eq!(
+        Term::<integer::Integer, EmptyBinder>::Apply(
+            Function::Var(symbol::make("f")),
+            vec![
+                Term::Const(Const::Var(symbol::make("x"))),
+                Term::Const(Const::Var(symbol::make("y"))),
+            ]
+        )
+        .subst_fun("f", Function::Symbol(integer::FunctionSymbol::Add)),
+        Term::<integer::Integer, EmptyBinder>::Apply(
+            Function::Symbol(integer::FunctionSymbol::Add),
+            vec![
+                Term::Const(Const::Var(symbol::make("x"))),
+                Term::Const(Const::Var(symbol::make("y"))),
+            ]
+        )
+    );
+
+    // (f (x, y))[(a, b)->a+b / f] = x + y
+    assert_eq!(
+        Term::<integer::Integer, EmptyBinder>::Apply(
+            Function::Var(symbol::make("f")),
+            vec![
+                Term::Const(Const::Var(symbol::make("x"))),
+                Term::Const(Const::Var(symbol::make("y"))),
+            ]
+        )
+        .subst_fun(
+            "f",
+            Function::Definition(
+                vec![symbol::make("a"), symbol::make("b")],
+                box Term::Apply(
+                    Function::Symbol(integer::FunctionSymbol::Add),
+                    vec![
+                        Term::Const(Const::Var(symbol::make("a"))),
+                        Term::Const(Const::Var(symbol::make("b"))),
+                    ]
+                )
+            )
+        ),
+        Term::<integer::Integer, EmptyBinder>::Apply(
+            Function::Symbol(integer::FunctionSymbol::Add),
+            vec![
+                Term::Const(Const::Var(symbol::make("x"))),
+                Term::Const(Const::Var(symbol::make("y"))),
+            ]
+        )
+    );
+}
