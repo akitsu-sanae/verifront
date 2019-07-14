@@ -1,4 +1,8 @@
-use crate::logic::{binder::*, symbol::Symbol, theory::*};
+use crate::logic::{
+    binder::*,
+    symbol::{self, Symbol},
+    theory::*,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Term<T: Theory, B: IsBinder> {
@@ -55,24 +59,56 @@ impl<T: Theory, B: IsBinder> Term<T, B> {
                 Apply(f, args)
             }
             Const(c) => Const(c),
-            Let(name, box init, box body) => body.subst(name.as_str(), init),
+            Let(name, box init, box body) => body.subst_term(name.as_str(), init),
         }
     }
 
-    pub fn subst(self, name: &str, val: Self) -> Self {
+    pub fn subst_sort(self, name: &str, val: Sort<T>) -> Self {
+        match self {
+            Term::Binding(binder, params, box body) => {
+                let params = params
+                    .into_iter()
+                    .map(|(param_name, param_sort)| {
+                        if param_sort == Sort::Var(symbol::make(name)) {
+                            (param_name, val.clone())
+                        } else {
+                            (param_name, param_sort)
+                        }
+                    })
+                    .collect();
+                let body = body.subst_sort(name, val);
+                Term::Binding(binder, params, box body)
+            }
+            Term::Apply(f, args) => {
+                let args = args
+                    .into_iter()
+                    .map(|arg| arg.subst_sort(name, val.clone()))
+                    .collect();
+                Term::Apply(f, args)
+            }
+            Term::Const(c) => Term::Const(c),
+            Term::Let(name_, box init, box body) => Term::Let(
+                name_,
+                box init.subst_sort(name, val.clone()),
+                box body.subst_sort(name, val),
+            ),
+        }
+    }
+
+    pub fn subst_term(self, name: &str, val: Self) -> Self {
         match self {
             Term::Binding(binder, params, box body) => {
                 let body = if params.iter().any(|&(ref param, _)| param == name) {
                     body
                 } else {
-                    body.subst(name, val)
+                    body.subst_term(name, val)
                 };
                 Term::Binding(binder, params, box body)
             }
             Term::Apply(f, args) => {
                 let args = args
                     .into_iter()
-                    .map(|arg| arg.subst(name, val.clone()))
+                    .map(|arg| arg.subst_term(name, val.clone()))
                     .collect();
                 Term::Apply(f, args)
             }
@@ -80,9 +116,12 @@ impl<T: Theory, B: IsBinder> Term<T, B> {
             Term::Const(c) => Term::Const(c),
             Term::Let(name_, box init, box body) => {
                 let (init, body) = if name == name_.as_str() {
-                    (init.subst(name, val), body)
+                    (init.subst_term(name, val), body)
                 } else {
-                    (init.subst(name, val.clone()), body.subst(name, val))
+                    (
+                        init.subst_term(name, val.clone()),
+                        body.subst_term(name, val),
+                    )
                 };
                 Term::Let(name_, box init, box body)
             }

@@ -17,18 +17,18 @@ fn make_integer(n: i64) -> FOLWithTheory<integer::Integer> {
 }
 
 #[test]
-fn subst() {
+fn subst_term() {
     use crate::logic::theory::boolean::{ConstSymbol::*, FunctionSymbol::*};
 
     // x[true/x] = true
     assert_eq!(
-        make_var("x").subst("x", Propos::Const(Const::Symbol(True))),
+        make_var("x").subst_term("x", Propos::Const(Const::Symbol(True))),
         make_true()
     );
 
     // (x and x)[true/x] = (true and true)
     assert_eq!(
-        Propos::and_of(vec![make_var("x"), make_var("x"),]).subst("x", make_true()),
+        Propos::and_of(vec![make_var("x"), make_var("x"),]).subst_term("x", make_true()),
         Propos::and_of(vec![make_true(), make_true(),])
     );
 
@@ -56,8 +56,8 @@ fn subst() {
                 ]
             )
         )
-        .subst("y", make_integer(42))
-        .subst("z", make_integer(12)),
+        .subst_term("y", make_integer(42))
+        .subst_term("z", make_integer(12)),
         FOL::Binding(
             Quantifier::Forall,
             vec![
