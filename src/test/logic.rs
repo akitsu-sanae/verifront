@@ -125,7 +125,7 @@ fn nnf() {
     use integer::ConstSymbol::Number;
     use Quantifier::*;
     let int_sort: Sort<integer::Integer> = Sort::Symbol(integer::SortSymbol::Int);
-    fn make_fun(sym: boolean::FunctionSymbol) -> Function<integer::Integer> {
+    fn make_fun(sym: boolean::FunctionSymbol) -> Function<integer::Integer, Quantifier> {
         Function::Symbol(integer::FunctionSymbol::from(sym))
     }
     // not (forall x. x=1 or x = 2)

@@ -36,10 +36,15 @@ fn sexp_of_sort<T: Smtlib2Theory>(sort: &Sort<T>) -> Result<Sexp, PrintError> {
     }
 }
 
-fn sexp_of_function<T: Smtlib2Theory>(fun: &Function<T>) -> Result<Sexp, PrintError> {
+fn sexp_of_function<T: Smtlib2Theory, B: Smtlib2Binder>(
+    fun: &Function<T, B>,
+) -> Result<Sexp, PrintError> {
     match fun {
         Function::Var(ident) => Ok(Sexp::Atom(sexp::Atom::S(ident.clone()))),
         Function::Symbol(sym) => T::sexp_of_function_symbol(sym),
+        Function::Definition(_, _) => {
+            Err(PrintError::new(format!("eval needed before printing term")))
+        } // TODO
     }
 }
 
@@ -71,7 +76,7 @@ where
         Apply(fun, args) => {
             let args: Result<Vec<_>, _> = args.into_iter().map(|arg| sexp_of_term(arg)).collect();
             let mut args = args?;
-            let mut terms = vec![sexp_of_function::<T>(fun)?];
+            let mut terms = vec![sexp_of_function::<T, B>(fun)?];
             terms.append(&mut args);
             Ok(Sexp::List(terms))
         }

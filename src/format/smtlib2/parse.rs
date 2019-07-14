@@ -73,7 +73,7 @@ fn sort_of_sexp<T: Smtlib2Theory>(sexp: &Sexp) -> Result<Sort<T>, ParseError> {
 
 fn function_of_sexp<T: Smtlib2Theory, B: Smtlib2Binder>(
     sexp: &Sexp,
-) -> Result<Function<T>, ParseError> {
+) -> Result<Function<T, B>, ParseError> {
     T::function_symbol_of_sexp(sexp)
         .map(|fs| Function::Symbol(fs))
         .or_else(|_| {

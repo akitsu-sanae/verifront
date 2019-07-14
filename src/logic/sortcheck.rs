@@ -83,6 +83,19 @@ fn term_with_env<T: Theory, B: IsBinder>(
                     Ok(ret)
                 }
                 Function::Var(symbol) => env.lookup(symbol),
+                Function::Definition(params, box body) => {
+                    if args.len() == params.len() {
+                        let inner_env: Vec<(String, Sort<T>)> =
+                            params.into_iter().cloned().zip(args.into_iter()).collect();
+                        let env = env.append(inner_env);
+                        term_with_env(body, &env)
+                    } else {
+                        Err(format!(
+                            "unmatch params and args: {:?} vs {:?}",
+                            params, args
+                        )) //FIXME
+                    }
+                }
             }
         }
         Term::Const(c) => match c {

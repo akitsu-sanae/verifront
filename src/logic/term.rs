@@ -7,7 +7,7 @@ use crate::logic::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Term<T: Theory, B: IsBinder> {
     Binding(B, Vec<(Symbol, Sort<T>)>, Box<Term<T, B>>),
-    Apply(Function<T>, Vec<Term<T, B>>),
+    Apply(Function<T, B>, Vec<Term<T, B>>),
     Const(Const<T>),
     Let(Symbol, Box<Term<T, B>>, Box<Term<T, B>>),
 }
@@ -17,6 +17,7 @@ impl<T: Theory> From<Term<T, EmptyBinder>> for Term<T, Quantifier> {
         match phi {
             Term::Binding(_, _, _) => unreachable!(),
             Term::Apply(f, args) => {
+                let f = Function::<T, Quantifier>::from(f);
                 let args = args.into_iter().map(|arg| Self::from(arg)).collect();
                 Term::Apply(f, args)
             }
