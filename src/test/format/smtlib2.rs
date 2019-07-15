@@ -1,6 +1,7 @@
 use crate::format::{smtlib2::*, Format};
 use crate::logic::{binder::*, symbol, term::*, theory::*};
 use crate::util;
+use num_bigint::BigInt;
 use sexp::Sexp;
 
 type FOL = FOLWithTheory<integer::Integer>;
@@ -52,7 +53,7 @@ fn primitive() {
 }
 
 fn int_literal(n: i64) -> FOL {
-    FOL::Const(Const::Symbol(integer::ConstSymbol::Number(n)))
+    FOL::Const(Const::Symbol(integer::ConstSymbol::Number(BigInt::from(n))))
 }
 
 fn int_sort() -> Sort<integer::Integer> {

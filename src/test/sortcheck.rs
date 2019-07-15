@@ -1,4 +1,5 @@
 use crate::logic::{binder::*, sortcheck, symbol, term::*, theory::*};
+use num_bigint::BigInt;
 
 type FOL = crate::logic::term::FOLWithTheory<integer::Integer>;
 
@@ -22,7 +23,7 @@ fn literal() {
 
     check(
         // 42
-        FOL::Const(Const::Symbol(ConstSymbol::Number(42))),
+        FOL::Const(Const::Symbol(ConstSymbol::Number(BigInt::from(42)))),
         Sort::Symbol(SortSymbol::Int),
     );
 }
@@ -59,11 +60,11 @@ fn binding() {
                     FOL::Apply(
                         Function::Symbol(Add),
                         vec![
-                            FOL::Const(Const::Symbol(ConstSymbol::Number(42))),
+                            FOL::Const(Const::Symbol(ConstSymbol::Number(BigInt::from(42)))),
                             make_var("a"),
                         ],
                     ),
-                    FOL::Const(Const::Symbol(ConstSymbol::Number(0))),
+                    FOL::Const(Const::Symbol(ConstSymbol::Number(BigInt::from(0)))),
                 ],
             ),
         ),

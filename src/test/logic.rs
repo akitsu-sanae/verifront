@@ -1,4 +1,5 @@
 use crate::logic::{binder::*, symbol, term::*, theory::*};
+use num_bigint::BigInt;
 
 use super::debug_print_check;
 
@@ -13,7 +14,7 @@ fn make_true() -> Propos {
 
 fn make_integer(n: i64) -> FOLWithTheory<integer::Integer> {
     use integer::ConstSymbol::Number;
-    Term::Const(Const::Symbol(Number(n)))
+    Term::Const(Const::Symbol(Number(BigInt::from(n))))
 }
 
 #[test]
@@ -141,14 +142,14 @@ fn nnf() {
                         make_fun(Equal),
                         vec![
                             Term::Const(Const::Var(symbol::make("x"))),
-                            Term::Const(Const::Symbol(Number(1))),
+                            Term::Const(Const::Symbol(Number(BigInt::from(1)))),
                         ]
                     ),
                     Term::Apply(
                         make_fun(Equal),
                         vec![
                             Term::Const(Const::Var(symbol::make("x"))),
-                            Term::Const(Const::Symbol(Number(2))),
+                            Term::Const(Const::Symbol(Number(BigInt::from(2)))),
                         ]
                     ),
                 ]
@@ -166,7 +167,7 @@ fn nnf() {
                         make_fun(Equal),
                         vec![
                             Term::Const(Const::Var(symbol::make("x"))),
-                            Term::Const(Const::Symbol(Number(1))),
+                            Term::Const(Const::Symbol(Number(BigInt::from(1)))),
                         ]
                     )
                     .neg(),
@@ -174,7 +175,7 @@ fn nnf() {
                         make_fun(Equal),
                         vec![
                             Term::Const(Const::Var(symbol::make("x"))),
-                            Term::Const(Const::Symbol(Number(2))),
+                            Term::Const(Const::Symbol(Number(BigInt::from(2)))),
                         ]
                     )
                     .neg()
@@ -196,14 +197,14 @@ fn nnf() {
                         make_fun(Equal),
                         vec![
                             Term::Const(Const::Var(symbol::make("x"))),
-                            Term::Const(Const::Symbol(Number(1))),
+                            Term::Const(Const::Symbol(Number(BigInt::from(1)))),
                         ]
                     ),
                     Term::Apply(
                         make_fun(Equal),
                         vec![
                             Term::Const(Const::Var(symbol::make("x"))),
-                            Term::Const(Const::Symbol(Number(2))),
+                            Term::Const(Const::Symbol(Number(BigInt::from(2)))),
                         ]
                     )
                     .neg(),
@@ -222,7 +223,7 @@ fn nnf() {
                         make_fun(Equal),
                         vec![
                             Term::Const(Const::Var(symbol::make("x"))),
-                            Term::Const(Const::Symbol(Number(1))),
+                            Term::Const(Const::Symbol(Number(BigInt::from(1)))),
                         ]
                     )
                     .neg(),
@@ -230,7 +231,7 @@ fn nnf() {
                         make_fun(Equal),
                         vec![
                             Term::Const(Const::Var(symbol::make("x"))),
-                            Term::Const(Const::Symbol(Number(2))),
+                            Term::Const(Const::Symbol(Number(BigInt::from(2)))),
                         ]
                     )
                 ]

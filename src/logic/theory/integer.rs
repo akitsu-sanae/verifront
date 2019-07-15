@@ -1,6 +1,7 @@
 use crate::format::smtlib2::Smtlib2Theory;
 use crate::logic::theory::*;
 use crate::util;
+use num_bigint::BigInt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SortSymbol {
@@ -77,10 +78,10 @@ impl IsFunctionSymbol<Integer> for FunctionSymbol {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConstSymbol {
     Boolean(boolean::ConstSymbol),
-    Number(i64),
+    Number(num_bigint::BigInt),
 }
 
 impl From<boolean::ConstSymbol> for ConstSymbol {
@@ -144,7 +145,14 @@ impl Smtlib2Theory for Integer {
         use ConstSymbol::*;
         match c {
             Boolean(bc) => boolean::Boolean::sexp_of_const_symbol(bc),
-            Number(n) => Ok(util::make_int_atom(*n)),
+            Number(n) => {
+                use num_traits::cast::ToPrimitive;
+                if let Some(n) = n.to_i64() {
+                    Ok(util::make_int_atom(n))
+                } else {
+                    Err(PrintError::new(format!("{} is not in the range of i64", n)))
+                }
+            }
         }
     }
 
@@ -187,7 +195,7 @@ impl Smtlib2Theory for Integer {
     fn const_symbol_of_sexp(term: &Sexp) -> Result<ConstSymbol, ParseError> {
         use ConstSymbol::*;
         if let Sexp::Atom(Atom::I(n)) = term {
-            Ok(Number(*n))
+            Ok(Number(BigInt::from(*n)))
         } else {
             match boolean::Boolean::const_symbol_of_sexp(term) {
                 Ok(bc) => Ok(Boolean(bc)),
